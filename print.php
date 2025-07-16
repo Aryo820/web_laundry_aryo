@@ -2,7 +2,7 @@
 include 'config/koneksi.php';
 session_start();
 $id_order = $_GET['id'];
-$id_level = isset($_SESSION['ID_LEVEL']) ? $_SESSION['ID_LEVEL'] : '';
+$id_level = isset($_SESSION['id_level']) ? $_SESSION['id_level'] : '';
 $querySetting = mysqli_query($config, "SELECT * FROM setting");
 $rowSetting = mysqli_fetch_assoc($querySetting);
 
@@ -11,6 +11,7 @@ $row = mysqli_fetch_all($query, MYSQLI_ASSOC);
 
 $queryLevel = mysqli_query($config, "SELECT * FROM level WHERE id='$id_level'");
 $rowLevel = mysqli_fetch_assoc($queryLevel);
+
 
 $tanggal = $row[0]['created_at'];
 $jam = explode(" ", $tanggal)[1];
@@ -102,7 +103,7 @@ $jam = explode(" ", $tanggal)[1];
             </div>
             <div class="row">
                 <span><?php echo $rowLevel['level_name'] ?></span>
-                <span><?php echo $_SESSION['NAME'] ?></span>
+                <span><?php echo $_SESSION['name'] ?></span>
             </div>
             <div class="row">
                 <span>Order Id: </span>

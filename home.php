@@ -1,11 +1,29 @@
 <?php
-include 'config/koneksi.php';
+// Memulai session agar bisa menggunakan $_SESSION
 session_start();
+
+// Membuat session ID baru dan menghapus session ID lama untuk meningkatkan keamanan (mencegah session fixation)
+session_regenerate_id();
+
+// Mengaktifkan output buffering (penyimpanan output sementara sebelum dikirim ke browser)
 ob_start();
-if (empty($_SESSION['NAME'])) {
-  header("location:index.php?akses=ditolak");
+
+// Membersihkan output buffer, menghapus semua isi buffer (jika ada output sebelumnya)
+ob_clean();
+
+// Memanggil file koneksi ke database
+require_once 'config/koneksi.php';
+
+// Memanggil file yang berisi fungsi-fungsi tambahan
+require_once 'function.php';
+
+// Mengecek apakah session 'id' kosong (belum login atau session habis)
+if (empty($_SESSION['id'])) {
+  // Jika belum login, arahkan pengguna ke halaman logout (biasanya akan diarahkan ke login page lagi)
+  header('Location: logout.php');
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -13,7 +31,7 @@ if (empty($_SESSION['NAME'])) {
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Laundry Mas Ruben</title>
+  <title>Laundry Aryo</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 

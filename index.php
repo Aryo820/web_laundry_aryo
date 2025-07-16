@@ -1,23 +1,37 @@
 <?php
-include 'config/koneksi.php';
 session_start();
-if (isset($_POST['email'])) {
-  $email = $_POST['email'];
-  $password = sha1($_POST['password']);
+require_once 'config/koneksi.php';
+require_once 'function.php';
 
-  $query = mysqli_query($config, "SELECT * FROM user WHERE email='$email' AND password='$password'");
+if (isset($_POST['login'])) {
+  $email    = $_POST['email'];
+  $password = $_POST['password'];
 
-  if (mysqli_num_rows($query) > 0) {
-    $row = mysqli_fetch_assoc($query);
-    $_SESSION['NAME'] = $row['name'];
-    $_SESSION['ID_USER'] = $row['id'];
-    $_SESSION['ID_LEVEL'] = $row['id_level'];
-    header("location:home.php");
+  $queryLogin = mysqli_query($config, "SELECT * FROM user WHERE email='$email' AND password='$password'");
+
+  if (mysqli_num_rows($queryLogin) > 0) {
+    $rowLogin = mysqli_fetch_assoc($queryLogin);
+    if ($password == $rowLogin['password']) {
+      $_SESSION['id']   = $rowLogin['id'];
+      $_SESSION['name'] = $rowLogin['name'];
+      $_SESSION['id_level'] = $rowLogin['id_level'];
+      header("location:home.php");
+      exit;
+    } else {
+      header("location:index.php?login=failed");
+      exit;
+    }
   } else {
-    header("location:index.php?login=gagal");
+    header("location:index.php?login=failed");
+    exit;
   }
 }
 ?>
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -25,7 +39,7 @@ if (isset($_POST['email'])) {
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Laundry Mas Ruben</title>
+  <title>Laundry Aryo</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 
@@ -67,11 +81,11 @@ if (isset($_POST['email'])) {
         <div class="container">
           <div class="row justify-content-center">
             <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center justify-content-center">
-              
+
               <div class="d-flex justify-content-center py-4">
                 <a href="index.html" class="logo d-flex align-items-center w-auto">
-                  <img src="img/manchester-united-fc.gif" alt="">
-                  <span class="d-none d-lg-block">Laundry Mas Ruben</span>
+                  <img src="img/text.gif" alt="">
+                  <span class="d-none d-lg-block">Laundry Aryo</span>
                 </a>
               </div><!-- End Logo -->
 
@@ -101,9 +115,9 @@ if (isset($_POST['email'])) {
                       <div class="invalid-feedback">Please enter your password!</div>
                     </div>
 
-                    
+
                     <div class="col-12">
-                      <button class="btn btn-primary w-100" type="submit">Login</button>
+                      <button type="submit" name="login" class="btn btn-success w-100">Login</button>
                     </div>
                   </form>
                 </div>

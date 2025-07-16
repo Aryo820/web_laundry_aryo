@@ -3,15 +3,17 @@ $queryOrder = mysqli_query($config, "SELECT trans_order.*, customer.customer_nam
 FROM trans_order 
 LEFT JOIN customer 
 ON trans_order.id_customer = customer.id 
+WHERE trans_order.deleted_at IS NULL 
 ORDER BY id DESC");
 
 $rowOrder = mysqli_fetch_all($queryOrder, MYSQLI_ASSOC);
 
 if (isset($_GET['delete'])) {
-    $id_user = $_GET['delete'];
+    $id_order = $_GET['delete'];
     $now = date('Y-m-d H:i:s');
-    mysqli_query($config, "UPDATE customer SET deleted_at = '$now' WHERE id='$id_user'");
+    mysqli_query($config, "UPDATE trans_order SET deleted_at = '$now' WHERE id='$id_order'");
     header("location:?page=order&hapus=berhasil");
+    exit();
 }
 ?>
 <section class="section">
@@ -22,7 +24,7 @@ if (isset($_GET['delete'])) {
                     <h5 class="card-title">Data Order</h5>
                     <div class="table-responsive">
                         <div class="mb-3" align="right">
-                            <!-- <a href="?page=tambah-order" class="btn btn-primary">Add Order</a> -->
+                            <a href="?page=tambah-order" class="btn btn-primary">Add Order</a>
                         </div>
                         <table class="table table-bordered">
                             <thead>
