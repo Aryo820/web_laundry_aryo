@@ -8,7 +8,7 @@
 
    <div class="d-flex align-items-center justify-content-between">
      <a href="index.html" class="logo d-flex align-items-center">
-       <div class="sidebar-brand-icon rotate-n-15"><img class="rounded-circle w-auto h-auto" src="img/manchester-united-fc.gif"></div>
+       <div class="sidebar-brand-icon rotate-n-15"><img class="rounded-circle" src="img/manchester-united-fc.gif"></div>
        <span class="d-none d-lg-block">Laundry Mas Ruben</span>
      </a>
      <i class="bi bi-list toggle-sidebar-btn"></i>
@@ -174,14 +174,14 @@
        <li class="nav-item dropdown pe-3">
 
          <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-           <img src="assets/img/profile-img.jpg" alt="Profile" class="rounded-circle">
+           <img src="" alt="" class="rounded-circle" width="35">
            <span class="d-none d-md-block dropdown-toggle ps-2"><?php echo $_SESSION['NAME'] ?></span>
          </a><!-- End Profile Iamge Icon -->
 
          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
            <li class="dropdown-header">
              <h6><?php echo $_SESSION['NAME'] ?></h6>
-             <span><?php echo $row['level_name'] ?></span>
+             <span><?php echo isset($row['level_name']) ? $row['level_name'] : ''; ?></span>
            </li>
            <li>
              <hr class="dropdown-divider">

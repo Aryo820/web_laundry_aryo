@@ -22,7 +22,7 @@ if (isset($_GET['delete'])) {
                     <h5 class="card-title">Data Order</h5>
                     <div class="table-responsive">
                         <div class="mb-3" align="right">
-                            <a href="?page=tambah-order" class="btn btn-primary">Add Order</a>
+                            <!-- <a href="?page=tambah-order" class="btn btn-primary">Add Order</a> -->
                         </div>
                         <table class="table table-bordered">
                             <thead>
@@ -31,7 +31,7 @@ if (isset($_GET['delete'])) {
                                     <th>Name</th>
                                     <th>Order</th>
                                     <th>Status</th>
-                                    <th></th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>

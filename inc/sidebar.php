@@ -25,6 +25,11 @@
             </a>
           </li>
           <li>
+            <a href="?page=level">
+              <i class="bi bi-circle"></i><span>Level</span>
+            </a>
+          </li>
+          <li>
             <a href="?page=user">
               <i class="bi bi-circle"></i><span>User</span>
             </a>
