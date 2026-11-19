@@ -5,37 +5,155 @@ function tanggal($date)
     return date('d F Y', $waktu);
 }
 
-if (isset($_GET['detail'])) {
-    $id_order = $_GET['detail'];
-    $queryOrder = mysqli_query($config, "SELECT trans_order.*, customer.customer_name FROM trans_order LEFT JOIN customer ON trans_order.id_customer = customer.id WHERE trans_order.id = '$id_order'");
-    $rowOrder = mysqli_fetch_assoc($queryOrder);
+// Membuat kode order berikutnya: TR-ddmmyy-NNN
+function generateOrderCode($config)
+{
+    $queryNoTrans = mysqli_query($config, "SELECT MAX(id) AS id_trans FROM trans_order");
+    $rowNoTrans = $queryNoTrans ? mysqli_fetch_assoc($queryNoTrans) : null;
+    $id_trans = ((int) ($rowNoTrans['id_trans'] ?? 0)) + 1;
 
-    $queryDetail = mysqli_query($config, "SELECT trans_order_detail.*, type_of_service.* FROM trans_order_detail LEFT JOIN type_of_service ON trans_order_detail.id_service = type_of_service.id WHERE id_order = '$id_order' ORDER BY trans_order_detail.id DESC");
-    $rowDetail = mysqli_fetch_all($queryDetail, MYSQLI_ASSOC);
+    return "TR-" . date("dmy") . "-" . sprintf("%03d", $id_trans);
+}
+
+$daftarError = [
+    'customer' => 'Pilih customer terlebih dahulu.',
+    'service'  => 'Tambahkan minimal satu layanan yang valid.',
+    'qty'      => 'Qty harus lebih dari 0.',
+    'tanggal'  => 'Tanggal order tidak valid.',
+    'status'   => 'Status order tidak valid.',
+    'simpan'   => 'Order gagal disimpan. Silakan coba lagi.',
+];
+$gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
+$errorMessage = $daftarError[$gagal] ?? '';
+
+$id_order_detail = isset($_GET['detail']) ? (int) $_GET['detail'] : 0;
+$rowOrder = null;
+$rowDetail = [];
+
+if ($id_order_detail > 0) {
+    $queryOrder = mysqli_query($config, "SELECT trans_order.*, customer.customer_name FROM trans_order LEFT JOIN customer ON trans_order.id_customer = customer.id WHERE trans_order.id = '$id_order_detail'");
+    $rowOrder = $queryOrder ? mysqli_fetch_assoc($queryOrder) : null;
+
+    if (!$rowOrder) {
+        header("location:?page=order");
+        exit;
+    }
+
+    $queryDetail = mysqli_query($config, "SELECT trans_order_detail.*, type_of_service.service_name FROM trans_order_detail LEFT JOIN type_of_service ON trans_order_detail.id_service = type_of_service.id WHERE trans_order_detail.id_order = '$id_order_detail' ORDER BY trans_order_detail.id DESC");
+    $rowDetail = $queryDetail ? mysqli_fetch_all($queryDetail, MYSQLI_ASSOC) : [];
 }
 
 if (isset($_POST['save'])) {
-    $id_customer = $_POST['id_customer'];
-    $order_code = $_POST['order_code'];
-    $order_status = $_POST['order_status'];
-    $order_date = $_POST['order_date'];
-    $order_end_date = $_POST['order_end_date'];
-    $grand_total = $_POST['grand_total'];
+    $id_customer    = (int) ($_POST['id_customer'] ?? 0);
+    $order_status   = (int) ($_POST['order_status'] ?? 0);
+    $order_date     = trim($_POST['order_date'] ?? '');
+    $order_end_date = trim($_POST['order_end_date'] ?? '');
+    $id_services    = $_POST['id_service'] ?? [];
+    $qtys           = $_POST['qty'] ?? [];
 
-    $insert = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, order_date, order_end_date, total) VALUES ('$id_customer', '$order_code', '$order_status', '$order_date', '$order_end_date', '$grand_total')");
-    if ($insert) {
-        $id_order = mysqli_insert_id($config);
-        for ($i = 0; $i < count($_POST['id_service']); $i++) {
-            $id_service = $_POST['id_service'][$i];
-            $qty = $_POST['qty'][$i] * 1000;
-            $queryService = mysqli_query($config, "SELECT * FROM type_of_service WHERE id = '$id_service'");
-            $rowService = mysqli_fetch_assoc($queryService);
-            $subtotal = $_POST['qty'][$i] = $rowService['price'];
-            mysqli_query($config, "INSERT INTO trans_order_detail (id_order, id_service, qty, subtotal) VALUES('$id_order', '$id_service', '$qty', '$subtotal')");
+    $tanggalValid = function ($date) {
+        $d = DateTime::createFromFormat('Y-m-d', $date);
+        return $d && $d->format('Y-m-d') === $date;
+    };
+
+    $detailRows = [];
+    $grandTotal = 0.0;
+    $errorCode  = '';
+
+    if ($id_customer <= 0) {
+        $errorCode = 'customer';
+    } elseif (!in_array($order_status, [0, 1], true)) {
+        $errorCode = 'status';
+    } elseif (!$tanggalValid($order_date) || !$tanggalValid($order_end_date)) {
+        $errorCode = 'tanggal';
+    } else {
+        $queryCustomerCheck = mysqli_query($config, "SELECT id FROM customer WHERE id='$id_customer' AND deleted_at IS NULL");
+        if (!$queryCustomerCheck || !mysqli_fetch_assoc($queryCustomerCheck)) {
+            $errorCode = 'customer';
         }
-        header("location:?page=order&tambah=berhasil");
+    }
+
+    if ($errorCode === '' && (!is_array($id_services) || count($id_services) === 0)) {
+        $errorCode = 'service';
+    }
+
+    if ($errorCode === '') {
+        foreach ($id_services as $i => $rawService) {
+            $id_service = (int) $rawService;
+            $qtyKg = (float) ($qtys[$i] ?? 0);
+
+            if ($id_service <= 0 || $qtyKg <= 0) {
+                $errorCode = 'qty';
+                break;
+            }
+
+            $queryService = mysqli_query($config, "SELECT id, price FROM type_of_service WHERE id='$id_service' AND deleted_at IS NULL");
+            $service = $queryService ? mysqli_fetch_assoc($queryService) : null;
+
+            if (!$service) {
+                $errorCode = 'service';
+                break;
+            }
+
+            // Subtotal dihitung di server: harga dari database x qty (kg)
+            $subtotal = $service['price'] * $qtyKg;
+
+            $detailRows[] = [
+                'id_service' => $id_service,
+                'qty'        => (int) round($qtyKg * 1000),
+                'price'      => (int) $service['price'],
+                'subtotal'   => $subtotal,
+            ];
+            $grandTotal += $subtotal;
+        }
+    }
+
+    if ($errorCode === '' && count($detailRows) === 0) {
+        $errorCode = 'service';
+    }
+
+    if ($errorCode !== '') {
+        header("location:?page=tambah-order&gagal=" . $errorCode);
         exit;
     }
+
+    // Total dihitung ulang di server; grand_total dari form tidak dipakai
+    $order_code = generateOrderCode($config);
+    $total = (int) round($grandTotal);
+
+    mysqli_begin_transaction($config);
+
+    $insertOrder = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, order_date, order_end_date, total, order_pay, order_change) VALUES ('$id_customer', '$order_code', '$order_status', '$order_date', '$order_end_date', '$total', 0, 0)");
+
+    if (!$insertOrder) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&gagal=simpan");
+        exit;
+    }
+
+    $id_order = mysqli_insert_id($config);
+    $detailTersimpan = true;
+
+    foreach ($detailRows as $detail) {
+        $subtotal = number_format($detail['subtotal'], 2, '.', '');
+        $insertDetail = mysqli_query($config, "INSERT INTO trans_order_detail (id_order, id_service, qty, price, subtotal, notes) VALUES ('$id_order', '{$detail['id_service']}', '{$detail['qty']}', '{$detail['price']}', '$subtotal', '')");
+
+        if (!$insertDetail) {
+            $detailTersimpan = false;
+            break;
+        }
+    }
+
+    if (!$detailTersimpan) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&gagal=simpan");
+        exit;
+    }
+
+    mysqli_commit($config);
+
+    header("location:?page=order&tambah=berhasil");
+    exit;
 }
 
 if (isset($_POST['save2'])) {
@@ -56,26 +174,18 @@ if (isset($_POST['save2'])) {
     }
 }
 
-$queryNoTrans = mysqli_query($config, "SELECT MAX(id) AS id_trans FROM trans_order");
-$rowNoTrans = mysqli_fetch_assoc($queryNoTrans);
-$id_trans = $rowNoTrans['id_trans'];
-$id_trans++;
+$orderCode = generateOrderCode($config);
 
-$format_no = "TR";
-$date = date("dmy");
-$icrement_number = sprintf("%03s", $id_trans);
-$orderCode = $format_no . "-" . $date . "-" . $icrement_number;
-
-$queryCustomer = mysqli_query($config, "SELECT * FROM customer ORDER BY id DESC");
+$queryCustomer = mysqli_query($config, "SELECT * FROM customer WHERE deleted_at IS NULL ORDER BY id DESC");
 $rowCustomer = mysqli_fetch_all($queryCustomer, MYSQLI_ASSOC);
 
 if (isset($_GET['id_customer'])) {
-    $id_customer = $_GET['id_customer'];
-    $queryCustomers = mysqli_query($config, "SELECT * FROM customer WHERE id = '$id_customer'");
-    $rowCustomers = mysqli_fetch_assoc($queryCustomers);
+    $id_customer = (int) $_GET['id_customer'];
+    $queryCustomers = mysqli_query($config, "SELECT * FROM customer WHERE id = '$id_customer' AND deleted_at IS NULL");
+    $rowCustomers = $queryCustomers ? mysqli_fetch_assoc($queryCustomers) : null;
 }
 
-$queryServices = mysqli_query($config, "SELECT * FROM type_of_service ORDER BY id DESC");
+$queryServices = mysqli_query($config, "SELECT * FROM type_of_service WHERE deleted_at IS NULL ORDER BY id DESC");
 $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
 
 ?>
@@ -131,16 +241,16 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                     <?php foreach ($rowDetail as $key => $data) { ?>
                                         <tr>
                                             <td><?php echo $key + 1; ?></td>
-                                            <td><?php echo $data['service_name']; ?></td>
+                                            <td><?php echo htmlspecialchars($data['service_name'] ?? '-'); ?></td>
                                             <td><?php echo $data['qty'] / 1000; ?></td>
                                             <td><?php echo $data['price']; ?></td>
-                                            <td><?php echo $data['qty'] / 1000 * $data['price'];
-                                                $total += $data['qty'] / 1000 * $data['price']; ?></td>
+                                            <td><?php echo (float) $data['subtotal'];
+                                                $total += (float) $data['subtotal']; ?></td>
                                         </tr>
                                     <?php } ?>
                                     <tr>
                                         <td colspan="4">Total</td>
-                                        <td><?php echo $total; ?></td>
+                                        <td><?php echo (float) $total; ?></td>
                                     </tr>
                                     <?php if (isset($_GET['detail'])) { ?>
                                         <?php if ($rowOrder['order_status'] == 1) { ?>
@@ -169,6 +279,9 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
 
                     <?php else: ?>
                         <h5 class="card-title"><?php echo isset($_GET['edit']) ? 'Edit' : 'Add' ?> Order</h5>
+                        <?php if ($errorMessage !== ''): ?>
+                            <div class="alert alert-danger"><?php echo htmlspecialchars($errorMessage); ?></div>
+                        <?php endif ?>
                         <form action="" method="post">
                             <div class="row">
                                 <div class="col-sm-6">
@@ -178,8 +291,8 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                     </div>
                                     <div class="mb-3">
                                         <label for="" class="form-label">Name</label>
-                                        <?php if (isset($_GET['id_customer'])) { ?>
-                                            <input type="text" class="form-control" value="<?php echo $rowCustomers['customer_name'] ?>" readonly>
+                                        <?php if (isset($_GET['id_customer']) && $rowCustomers) { ?>
+                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($rowCustomers['customer_name']) ?>" readonly>
                                             <input type="hidden" name="id_customer" value="<?php echo $rowCustomers['id'] ?>">
                                         <?php } else { ?>
                                             <select name="id_customer" id="" class="form-control">
@@ -249,6 +362,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
 </section>
 
 <!-- Modal -->
+<?php if ($id_order_detail > 0 && $rowOrder['order_status'] == 0): ?>
 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -275,6 +389,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
         </div>
     </div>
 </div>
+<?php endif ?>
 <script>
     // var, let, const
     // var : ketika nilainya tidak ada, maka tidak ada error
