@@ -1,8 +1,16 @@
  <?php
-  $id_level = $_SESSION['ID_LEVEL'];
+  $id_level = $_SESSION['id_level'] ?? 0;
+  $row = ['level_name' => '-'];
 
-  $query = mysqli_query($config, "SELECT * FROM level WHERE id='$id_level'");
-  $row = mysqli_fetch_assoc($query);
+  if ($id_level) {
+    $query = mysqli_query($config, "SELECT * FROM level WHERE id='" . (int) $id_level . "'");
+    if ($query) {
+      $level = mysqli_fetch_assoc($query);
+      if ($level) {
+        $row = $level;
+      }
+    }
+  }
   ?>
  <header id="header" class="header fixed-top d-flex align-items-center">
 
@@ -174,14 +182,13 @@
        <li class="nav-item dropdown pe-3">
 
          <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-           <img src="" alt="" class="rounded-circle" width="35">
            <span class="d-none d-md-block dropdown-toggle ps-2"><?php echo $_SESSION['name'] ?></span>
          </a><!-- End Profile Iamge Icon -->
 
          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
            <li class="dropdown-header">
              <h6><?php echo $_SESSION['name'] ?></h6>
-             <span><?php echo isset($row['level_name']) ?></span>
+             <span><?php echo htmlspecialchars($row['level_name'] ?? '-') ?></span>
            </li>
            <li>
              <hr class="dropdown-divider">
