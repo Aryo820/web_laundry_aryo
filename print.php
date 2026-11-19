@@ -1,22 +1,67 @@
 <?php
-include 'config/koneksi.php';
 session_start();
-$id_order = $_GET['id'];
-$id_level = isset($_SESSION['id_level']) ? $_SESSION['id_level'] : '';
-$querySetting = mysqli_query($config, "SELECT * FROM setting");
-$rowSetting = mysqli_fetch_assoc($querySetting);
+require_once 'config/koneksi.php';
 
-$query = mysqli_query($config, "SELECT trans_order_detail.*, trans_order.*, customer.customer_name, type_of_Service.* FROM trans_order_detail LEFT JOIN type_of_service ON trans_order_detail.id_service = type_of_service.id LEFT JOIN trans_order ON trans_order_detail.id_order = trans_order.id LEFT JOIN customer ON trans_order.id_customer = customer.id WHERE trans_order.id = '$id_order'");
-$row = mysqli_fetch_all($query, MYSQLI_ASSOC);
+// Struk hanya boleh dibuka oleh user yang sudah login
+if (empty($_SESSION['id'])) {
+    header('Location: index.php');
+    exit;
+}
 
-$queryLevel = mysqli_query($config, "SELECT * FROM level WHERE id='$id_level'");
-$rowLevel = mysqli_fetch_assoc($queryLevel);
+$id_order = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
+if ($id_order <= 0) {
+    header('Location: home.php?page=order');
+    exit;
+}
 
-$tanggal = $row[0]['created_at'];
-$jam = explode(" ", $tanggal)[1];
+$querySetting = mysqli_query($config, "SELECT * FROM setting LIMIT 1");
+$rowSetting = $querySetting ? mysqli_fetch_assoc($querySetting) : null;
 
+// Kolom dipilih eksplisit agar price/subtotal memakai snapshot di trans_order_detail
+$query = mysqli_query($config, "
+    SELECT
+        trans_order_detail.qty,
+        trans_order_detail.price,
+        trans_order_detail.subtotal,
+        trans_order.order_code,
+        trans_order.order_date,
+        trans_order.order_status,
+        trans_order.order_pay,
+        trans_order.order_change,
+        trans_order.total,
+        trans_order.created_at,
+        customer.customer_name,
+        type_of_service.service_name
+    FROM trans_order_detail
+    INNER JOIN trans_order ON trans_order_detail.id_order = trans_order.id
+    LEFT JOIN customer ON trans_order.id_customer = customer.id
+    LEFT JOIN type_of_service ON trans_order_detail.id_service = type_of_service.id
+    WHERE trans_order.id = '$id_order'
+      AND trans_order.deleted_at IS NULL
+    ORDER BY trans_order_detail.id ASC
+");
+$row = $query ? mysqli_fetch_all($query, MYSQLI_ASSOC) : [];
 
+// Order tidak ada / sudah dihapus / tidak punya detail
+if (empty($row)) {
+    header('Location: home.php?page=order');
+    exit;
+}
+
+$order = $row[0];
+$jam = date('H:i', strtotime($order['created_at']));
+
+$id_level = (int) ($_SESSION['id_level'] ?? 0);
+$rowLevel = ['level_name' => '-'];
+
+if ($id_level > 0) {
+    $queryLevel = mysqli_query($config, "SELECT level_name FROM level WHERE id='$id_level'");
+    $level = $queryLevel ? mysqli_fetch_assoc($queryLevel) : null;
+    if ($level) {
+        $rowLevel = $level;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +69,7 @@ $jam = explode(" ", $tanggal)[1];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laundry Mas Ruben</title>
+    <title><?php echo htmlspecialchars($rowSetting['name'] ?? 'Laundry Aryo'); ?></title>
     <style>
         body {
             font-family: 'Courier New';
@@ -88,40 +133,40 @@ $jam = explode(" ", $tanggal)[1];
         <div class="struk-header">
             <div class="info text-center">
                 <h3>
-                    <p><?php echo $rowSetting['name'] ?></p>
+                    <p><?php echo htmlspecialchars($rowSetting['name'] ?? '-'); ?></p>
                 </h3>
-                <p><?php echo $rowSetting['email'] ?></p>
-                <p><?php echo $rowSetting['address'] ?></p>
-                <p><?php echo $rowSetting['phone'] ?></p>
+                <p><?php echo htmlspecialchars($rowSetting['email'] ?? '-'); ?></p>
+                <p><?php echo htmlspecialchars($rowSetting['address'] ?? '-'); ?></p>
+                <p><?php echo htmlspecialchars($rowSetting['phone'] ?? '-'); ?></p>
             </div>
         </div>
         <div class="line"></div>
         <div class="info">
             <div class="row">
-                <span><?php echo $row[0]['order_date'] ?></span>
-                <span><?php echo $jam ?></span>
+                <span><?php echo htmlspecialchars($order['order_date']); ?></span>
+                <span><?php echo htmlspecialchars($jam); ?></span>
             </div>
             <div class="row">
-                <span><?php echo $rowLevel['level_name'] ?></span>
-                <span><?php echo $_SESSION['name'] ?></span>
+                <span><?php echo htmlspecialchars($rowLevel['level_name'] ?? '-'); ?></span>
+                <span><?php echo htmlspecialchars($_SESSION['name'] ?? '-'); ?></span>
             </div>
             <div class="row">
                 <span>Order Id: </span>
-                <span><?php echo $row[0]['order_code'] ?></span>
+                <span><?php echo htmlspecialchars($order['order_code']); ?></span>
             </div>
             <div class="row">
                 <span>Customer Name: </span>
-                <span><?php echo $row[0]['customer_name'] ?></span>
+                <span><?php echo htmlspecialchars($order['customer_name'] ?? '-'); ?></span>
             </div>
         </div>
         <div class="line"></div>
-        <?php foreach ($row as $key => $r) { ?>
+        <?php foreach ($row as $r) { ?>
             <div class="service">
                 <div class="item">
-                    <strong><?php echo $r['service_name'] ?></strong>
+                    <strong><?php echo htmlspecialchars($r['service_name'] ?? '-'); ?></strong>
                     <div class="item-qty">
-                        <span><?php echo $r['qty'] / 1000 ?> kg X @ <?php echo $r['price'] ?></span>
-                        <span><?php echo $r['subtotal'] ?></span>
+                        <span><?php echo $r['qty'] / 1000; ?> kg X @ <?php echo (float) $r['price']; ?></span>
+                        <span><?php echo (float) $r['subtotal']; ?></span>
                     </div>
                 </div>
             </div>
@@ -130,16 +175,27 @@ $jam = explode(" ", $tanggal)[1];
         <div class="summary">
             <div class="row">
                 <span>Total</span>
-                <span>Rp. <?php echo $row[0]['total'] ?></span>
+                <span>Rp. <?php echo (float) $order['total']; ?></span>
             </div>
+            <?php if ($order['order_status'] == 1) { ?>
+                <div class="row">
+                    <span>Pay</span>
+                    <span>Rp. <?php echo (float) $order['order_pay']; ?></span>
+                </div>
+                <div class="row">
+                    <span>Change</span>
+                    <span>Rp. <?php echo (float) $order['order_change']; ?></span>
+                </div>
+            <?php } ?>
         </div>
         <div class="line"></div>
         <div class="footer" class="text-center">
             Terima Kasih!!
         </div>
-        <script>
-            window.print();
-        </script>
+    </div>
+    <script>
+        window.print();
+    </script>
 </body>
 
 </html>
