@@ -41,6 +41,39 @@ function loginValidation()
     }
 }
 
+// Membuat hash password baru (bcrypt/argon2 mengikuti PASSWORD_DEFAULT)
+function hashPassword($password)
+{
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+// Mengecek password dengan dukungan data lama:
+// 1. Hash modern (bcrypt/argon2) dari password_hash()
+// 2. Hash SHA1 (40 karakter hex) dari versi lama aplikasi
+// 3. Password plaintext dari data seed lama
+function verifyPassword($input, $stored)
+{
+    if ($stored === '') {
+        return false;
+    }
+
+    if (password_verify($input, $stored)) {
+        return true;
+    }
+
+    if (strlen($stored) === 40 && ctype_xdigit($stored)) {
+        return hash_equals($stored, sha1($input));
+    }
+
+    return hash_equals($stored, $input);
+}
+
+// Mengecek apakah hash password perlu di-upgrade ke algoritma saat ini
+function passwordNeedsRehash($stored)
+{
+    return password_needs_rehash($stored, PASSWORD_DEFAULT);
+}
+
 // Fungsi untuk mengubah nilai status order menjadi label HTML
 // Letakkan fungsi ini di file koneksi.php atau file fungsi utama Anda
 

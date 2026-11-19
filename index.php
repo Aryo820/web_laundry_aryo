@@ -7,24 +7,31 @@ if (isset($_POST['login'])) {
   $email    = $_POST['email'];
   $password = $_POST['password'];
 
-  $queryLogin = mysqli_query($config, "SELECT * FROM user WHERE email='$email' AND password='$password'");
+  // Cari user berdasarkan email saja, lalu verifikasi password di PHP
+  $emailSafe  = mysqli_real_escape_string($config, $email);
+  $queryLogin = mysqli_query($config, "SELECT * FROM user WHERE email='$emailSafe'");
 
-  if (mysqli_num_rows($queryLogin) > 0) {
+  if ($queryLogin && mysqli_num_rows($queryLogin) > 0) {
     $rowLogin = mysqli_fetch_assoc($queryLogin);
-    if ($password == $rowLogin['password']) {
+
+    if (verifyPassword($password, $rowLogin['password'])) {
+      // Upgrade otomatis hash lama (SHA1/plaintext) ke bcrypt saat login berhasil
+      if (passwordNeedsRehash($rowLogin['password'])) {
+        $newHash     = mysqli_real_escape_string($config, hashPassword($password));
+        $idUser      = (int) $rowLogin['id'];
+        mysqli_query($config, "UPDATE user SET password='$newHash' WHERE id='$idUser'");
+      }
+
       $_SESSION['id']   = $rowLogin['id'];
       $_SESSION['name'] = $rowLogin['name'];
       $_SESSION['id_level'] = $rowLogin['id_level'];
       header("location:home.php");
       exit;
-    } else {
-      header("location:index.php?login=failed");
-      exit;
     }
-  } else {
-    header("location:index.php?login=failed");
-    exit;
   }
+
+  header("location:index.php?login=failed");
+  exit;
 }
 ?>
 

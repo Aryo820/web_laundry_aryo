@@ -8,7 +8,7 @@ if (isset($_GET['edit'])) {
         $id_level = $_POST['id_level'];
         $name = $_POST['name'];
         $email = $_POST['email'];
-        $password = empty($_POST['password']) ? $row['password'] : sha1($_POST['password']);
+        $password = empty($_POST['password']) ? $row['password'] : hashPassword($_POST['password']);
 
         mysqli_query($config, "UPDATE user SET id_level='$id_level', name='$name', email='$email', password='$password' WHERE id='$edit'");
         header("location:?page=user&ubah=berhasil");
@@ -19,7 +19,14 @@ if (isset($_GET['edit'])) {
         $id_level = $_POST['id_level'];
         $name = $_POST['name'];
         $email = $_POST['email'];
-        $password = sha1($_POST['password']);
+
+        // Password wajib diisi untuk user baru; password_hash('') akan membuat akun tanpa password
+        if ($_POST['password'] === '') {
+            header("location:?page=tambah-user&password=kosong");
+            exit;
+        }
+
+        $password = hashPassword($_POST['password']);
 
         mysqli_query($config, "INSERT INTO user (id_level, name, email, password) VALUES ('$id_level', '$name', '$email', '$password')");
         header("location:?page=user&tambah=berhasil");
@@ -37,6 +44,9 @@ $rowLevel = mysqli_fetch_all($queryLevel, MYSQLI_ASSOC);
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title"><?php echo isset($_GET['edit']) ? 'Edit' : 'Add' ?> User</h5>
+                    <?php if (isset($_GET['password']) && $_GET['password'] === 'kosong'): ?>
+                        <div class="alert alert-danger">Password wajib diisi untuk user baru.</div>
+                    <?php endif ?>
                     <form action="" method="post">
                         <div class="mb-3">
                             <label for="" class="form-label">Level *</label>
