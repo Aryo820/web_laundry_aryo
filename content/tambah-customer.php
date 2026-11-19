@@ -11,6 +11,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "UPDATE customer SET customer_name='$name', phone='$phone', address='$address' WHERE id='$edit'");
         header("location:?page=customer&ubah=berhasil");
+        exit;
     }
 } else {
     if (isset($_POST['save'])) {
@@ -20,6 +21,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "INSERT INTO customer (customer_name, phone, address) VALUES ('$name', '$phone', '$address')");
         header("location:?page=customer&tambah=berhasil");
+        exit;
     }
 }
 ?>

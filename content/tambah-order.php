@@ -34,6 +34,7 @@ if (isset($_POST['save'])) {
             mysqli_query($config, "INSERT INTO trans_order_detail (id_order, id_service, qty, subtotal) VALUES('$id_order', '$id_service', '$qty', '$subtotal')");
         }
         header("location:?page=order&tambah=berhasil");
+        exit;
     }
 }
 
@@ -51,6 +52,7 @@ if (isset($_POST['save2'])) {
     if ($update) {
         mysqli_query($config, "INSERT INTO trans_laundry_pickup (id_order, id_customer, pickup_date) VALUES ('$id_order', '$id_customer', '$pickup_date')");
         header("location:?page=tambah-order&detail=" . $id_order . "&status-pickup");
+        exit;
     }
 }
 

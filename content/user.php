@@ -7,6 +7,7 @@ if (isset($_GET['delete'])) {
     $now = date('Y-m-d H:i:s');
     mysqli_query($config, "DELETE FROM user WHERE id = '$id_user'");
     header("location:?page=user&hapus=berhasil");
+    exit;
 }
 ?>
 <section class="section">

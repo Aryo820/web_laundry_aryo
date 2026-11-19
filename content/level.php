@@ -7,6 +7,7 @@ if (isset($_GET['delete'])) {
     $now = date('Y-m-d H:i:s');
     mysqli_query($config, "UPDATE level SET deleted_at = '$now' WHERE id='$id_level'");
     header("location:?page=level&hapus=berhasil");
+    exit;
 }
 ?>
 <section class="section">

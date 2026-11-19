@@ -21,6 +21,7 @@ require_once 'function.php';
 if (empty($_SESSION['id'])) {
   // Jika belum login, arahkan pengguna ke halaman logout (biasanya akan diarahkan ke login page lagi)
   header('Location: logout.php');
+  exit;
 }
 ?>
 

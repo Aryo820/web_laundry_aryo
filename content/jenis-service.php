@@ -6,7 +6,8 @@ if (isset($_GET['delete'])) {
     $id_customer = $_GET['delete'];
     $now = date('Y-m-d H:i:s');
     mysqli_query($config, "UPDATE type_of_service SET deleted_at = '$now' WHERE id='$id_customer'");
-    header("location:?page=customer&hapus=berhasil");
+    header("location:?page=jenis-service&hapus=berhasil");
+    exit;
 }
 ?>
 <section class="section">

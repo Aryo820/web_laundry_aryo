@@ -9,6 +9,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "UPDATE level SET level_name ='$level_name' WHERE id='$edit'");
         header("location:?page=level&ubah=berhasil");
+        exit;
     }
 } else {
     if (isset($_POST['save'])) {
@@ -16,6 +17,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "INSERT INTO level (level_name) VALUES ('$level_name')");
         header("location:?page=level&tambah=berhasil");
+        exit;
     }
 }
 ?>

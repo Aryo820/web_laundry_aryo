@@ -12,6 +12,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "UPDATE user SET id_level='$id_level', name='$name', email='$email', password='$password' WHERE id='$edit'");
         header("location:?page=user&ubah=berhasil");
+        exit;
     }
 } else {
     if (isset($_POST['save'])) {
@@ -22,6 +23,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "INSERT INTO user (id_level, name, email, password) VALUES ('$id_level', '$name', '$email', '$password')");
         header("location:?page=user&tambah=berhasil");
+        exit;
     }
 }
 

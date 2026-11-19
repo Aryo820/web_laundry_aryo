@@ -15,6 +15,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "UPDATE type_of_service SET service_name='$name', price='$price', description='$description' WHERE id='$edit'");
         header("location:?page=jenis-service&ubah=berhasil");
+        exit;
     }
 } else {
     if (isset($_POST['save'])) {
@@ -24,6 +25,7 @@ if (isset($_GET['edit'])) {
 
         mysqli_query($config, "INSERT INTO type_of_service (service_name, price, description) VALUES ('$name', '$price', '$description')");
         header("location:?page=jenis-service&tambah=berhasil");
+        exit;
     }
 }
 ?>
