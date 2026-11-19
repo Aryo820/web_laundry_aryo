@@ -4,7 +4,7 @@ FROM trans_order
 LEFT JOIN customer 
 ON trans_order.id_customer = customer.id 
 WHERE trans_order.deleted_at IS NULL 
-ORDER BY id DESC");
+ORDER BY trans_order.id DESC");
 
 $rowOrder = mysqli_fetch_all($queryOrder, MYSQLI_ASSOC);
 
