@@ -34,7 +34,7 @@ if (isset($_GET['edit'])) {
     }
 }
 
-$queryLevel = mysqli_query($config, "SELECT * FROM level ORDER BY id DESC");
+$queryLevel = mysqli_query($config, "SELECT * FROM level WHERE deleted_at IS NULL ORDER BY id DESC");
 $rowLevel = mysqli_fetch_all($queryLevel, MYSQLI_ASSOC);
 
 ?>
@@ -53,7 +53,7 @@ $rowLevel = mysqli_fetch_all($queryLevel, MYSQLI_ASSOC);
                             <select name="id_level" id="" class="form-control">
                                 <option value="">Select One</option>
                                 <?php foreach ($rowLevel as $level): ?>
-                                    <option <?php echo isset($_GET['edit']) ? ($level['id'] == $row['id_level'] ? 'selected' : '') : '' ?> value="<?php echo $level['id'] ?>"><?php echo $level['level_name'] ?></option>
+                                    <option <?php echo isset($_GET['edit']) ? ($level['id'] == $row['id_level'] ? 'selected' : '') : '' ?> value="<?php echo (int) $level['id'] ?>"><?php echo htmlspecialchars($level['level_name'], ENT_QUOTES, 'UTF-8') ?></option>
                                 <?php endforeach ?>
                             </select>
                         </div>
