@@ -2,8 +2,13 @@
 session_start();
 require_once 'config/koneksi.php';
 
-// Struk hanya boleh dibuka oleh user yang sudah login
-if (empty($_SESSION['id'])) {
+// Struk hanya boleh dibuka oleh user yang sudah login dan masih terdaftar
+$idUser = (int) ($_SESSION['id'] ?? 0);
+$queryUser = $idUser > 0 ? mysqli_query($config, "SELECT id FROM user WHERE id='$idUser'") : null;
+
+if (!$queryUser || mysqli_num_rows($queryUser) === 0) {
+    session_unset();
+    session_destroy();
     header('Location: index.php');
     exit;
 }

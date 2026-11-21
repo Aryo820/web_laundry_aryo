@@ -23,6 +23,21 @@ if (empty($_SESSION['id'])) {
   header('Location: logout.php');
   exit;
 }
+
+// Pastikan user di session masih ada; sinkronkan nama dan level terbaru
+$idSession = (int) ($_SESSION['id'] ?? 0);
+$querySession = mysqli_query($config, "SELECT id, name, id_level FROM user WHERE id='$idSession'");
+$rowSession = $querySession ? mysqli_fetch_assoc($querySession) : null;
+
+if (!$rowSession) {
+  session_unset();
+  session_destroy();
+  header('Location: index.php');
+  exit;
+}
+
+$_SESSION['name'] = $rowSession['name'];
+$_SESSION['id_level'] = $rowSession['id_level'];
 ?>
 
 <!DOCTYPE html>
