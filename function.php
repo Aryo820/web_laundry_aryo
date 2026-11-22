@@ -62,3 +62,54 @@ function csrfValid()
 
     return hash_equals($_SESSION['csrf_token'], $token);
 }
+
+// Normalisasi email/IP sebelum dipakai di query percobaan login
+function loginAttemptIdentity($email, $ip)
+{
+    return [
+        'email' => mb_substr((string) $email, 0, 100),
+        'ip'    => substr((string) $ip, 0, 45),
+    ];
+}
+
+// Menghitung percobaan login gagal dalam jendela waktu tertentu
+function loginAttemptCount($config, $email, $ip, $minutes = 15)
+{
+    $minutes = max(1, (int) $minutes);
+    $data    = loginAttemptIdentity($email, $ip);
+    $emailSafe = mysqli_real_escape_string($config, $data['email']);
+    $ipSafe    = mysqli_real_escape_string($config, $data['ip']);
+
+    $query = mysqli_query($config, "SELECT COUNT(*) AS total FROM login_attempt WHERE email='$emailSafe' AND ip_address='$ipSafe' AND attempted_at >= DATE_SUB(NOW(), INTERVAL $minutes MINUTE)");
+    $row   = $query ? mysqli_fetch_assoc($query) : null;
+
+    return (int) ($row['total'] ?? 0);
+}
+
+// Mencatat satu percobaan login gagal
+function loginAttemptAdd($config, $email, $ip)
+{
+    $data      = loginAttemptIdentity($email, $ip);
+    $emailSafe = mysqli_real_escape_string($config, $data['email']);
+    $ipSafe    = mysqli_real_escape_string($config, $data['ip']);
+
+    mysqli_query($config, "INSERT INTO login_attempt (email, ip_address, attempted_at) VALUES ('$emailSafe', '$ipSafe', NOW())");
+}
+
+// Menghapus riwayat percobaan setelah login berhasil
+function loginAttemptClear($config, $email, $ip)
+{
+    $data      = loginAttemptIdentity($email, $ip);
+    $emailSafe = mysqli_real_escape_string($config, $data['email']);
+    $ipSafe    = mysqli_real_escape_string($config, $data['ip']);
+
+    mysqli_query($config, "DELETE FROM login_attempt WHERE email='$emailSafe' AND ip_address='$ipSafe'");
+}
+
+// Membersihkan catatan lama agar tabel tidak membengkak
+function loginAttemptCleanup($config, $days = 1)
+{
+    $days = max(1, (int) $days);
+
+    mysqli_query($config, "DELETE FROM login_attempt WHERE attempted_at < DATE_SUB(NOW(), INTERVAL $days DAY)");
+}

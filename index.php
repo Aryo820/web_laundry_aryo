@@ -1,4 +1,5 @@
 <?php
+require_once 'inc/security.php';
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params([
   'lifetime' => 0,
@@ -18,6 +19,15 @@ if (isset($_POST['login'])) {
 
   $email    = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
   $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+  $ipLogin  = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+
+  // Bersihkan catatan lama, lalu tolak jika sudah 5 kali gagal dalam 15 menit
+  loginAttemptCleanup($config, 1);
+
+  if (loginAttemptCount($config, $email, $ipLogin, 15) >= 5) {
+    header("location:index.php?login=locked");
+    exit;
+  }
 
   // Cari user berdasarkan email saja, lalu verifikasi password di PHP
   $emailSafe  = mysqli_real_escape_string($config, $email);
@@ -27,6 +37,9 @@ if (isset($_POST['login'])) {
     $rowLogin = mysqli_fetch_assoc($queryLogin);
 
     if (verifyPassword($password, $rowLogin['password'])) {
+      // Login berhasil: reset riwayat gagal untuk email + IP ini
+      loginAttemptClear($config, $email, $ipLogin);
+
       // Cegah session fixation: buang ID lama, pakai ID baru setelah login berhasil
       session_regenerate_id(true);
 
@@ -45,6 +58,8 @@ if (isset($_POST['login'])) {
     }
   }
 
+  // Simpan percobaan gagal; pesan ke pengguna tetap umum
+  loginAttemptAdd($config, $email, $ipLogin);
   header("location:index.php?login=failed");
   exit;
 }
@@ -122,6 +137,8 @@ if (isset($_POST['login'])) {
                     <div class="alert alert-danger">Email atau password salah.</div>
                   <?php elseif ($loginStatus === 'csrf'): ?>
                     <div class="alert alert-danger">Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.</div>
+                  <?php elseif ($loginStatus === 'locked'): ?>
+                    <div class="alert alert-danger">Terlalu banyak percobaan login. Coba lagi dalam 15 menit.</div>
                   <?php endif ?>
 
                   <div class="pt-4 pb-2">

@@ -1,4 +1,5 @@
 <?php
+require_once 'inc/security.php';
 // Memulai session agar bisa menggunakan $_SESSION
 ini_set('session.use_strict_mode', '1');
 session_set_cookie_params([
