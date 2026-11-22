@@ -50,7 +50,7 @@ if ($cari !== '') {
     $kondisiCari = " AND (trans_order.order_code LIKE '%$cariSafe%' OR customer.customer_name LIKE '%$cariSafe%' OR customer.phone LIKE '%$cariSafe%')";
 }
 
-$queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_status, customer.customer_name
+$queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_end_date, trans_order.order_status, trans_order.laundry_status, customer.customer_name
 FROM trans_order
 LEFT JOIN customer ON trans_order.id_customer = customer.id
 WHERE trans_order.deleted_at IS NULL$kondisiCari
@@ -92,6 +92,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                     <th>Code</th>
                                     <th>Name</th>
                                     <th>Tanggal</th>
+                                    <th>Estimasi</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
@@ -99,7 +100,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                             <tbody>
                                 <?php if (empty($rowOrder)): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted">
+                                        <td colspan="6" class="text-center text-muted">
                                             <?php echo $cari !== '' ? 'Tidak ada order yang cocok.' : 'Belum ada order.'; ?>
                                         </td>
                                     </tr>
@@ -111,11 +112,14 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                         <td><?php echo htmlspecialchars($order['customer_name'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td><?php echo htmlspecialchars($order['order_date'], ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td>
-                                            <?php if ($isLunas): ?>
-                                                <span class="badge bg-success">Lunas</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary">Baru</span>
+                                            <?php echo formatTanggalSingkat($order['order_end_date']); ?>
+                                            <?php if (cucianLewatTenggat($order['order_end_date'], $order['laundry_status'])): ?>
+                                                <span class="badge bg-danger">Lewat</span>
                                             <?php endif ?>
+                                        </td>
+                                        <td>
+                                            <?php echo badgeStatusBayar($order['order_status']); ?>
+                                            <?php echo badgeStatusCucian($order['laundry_status']); ?>
                                         </td>
                                         <td>
                                             <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning">Print</a>

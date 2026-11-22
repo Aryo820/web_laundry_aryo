@@ -27,8 +27,8 @@ $belumBayar    = (int) ($ringkasan['belum_bayar'] ?? 0);
 
 // Lima order terbaru yang masih aktif
 $queryTerbaru = mysqli_query($config, "
-    SELECT trans_order.id, trans_order.order_code, trans_order.order_date,
-           trans_order.total, trans_order.order_status, customer.customer_name
+    SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_end_date,
+           trans_order.total, trans_order.order_status, trans_order.laundry_status, customer.customer_name
     FROM trans_order
     LEFT JOIN customer ON customer.id = trans_order.id_customer
     WHERE trans_order.deleted_at IS NULL
@@ -150,6 +150,7 @@ $rowTerbaru = $queryTerbaru ? mysqli_fetch_all($queryTerbaru, MYSQLI_ASSOC) : []
                                     <th>Kode</th>
                                     <th>Customer</th>
                                     <th>Tanggal</th>
+                                    <th>Estimasi</th>
                                     <th>Total</th>
                                     <th>Status</th>
                                     <th>Aksi</th>
@@ -158,11 +159,10 @@ $rowTerbaru = $queryTerbaru ? mysqli_fetch_all($queryTerbaru, MYSQLI_ASSOC) : []
                             <tbody>
                                 <?php if (empty($rowTerbaru)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted">Belum ada order.</td>
+                                        <td colspan="7" class="text-center text-muted">Belum ada order.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($rowTerbaru as $order): ?>
-                                        <?php $isLunas = (int) $order['order_status'] === 1; ?>
                                         <tr>
                                             <td>
                                                 <a href="?page=tambah-order&detail=<?php echo (int) $order['id']; ?>">
@@ -171,13 +171,16 @@ $rowTerbaru = $queryTerbaru ? mysqli_fetch_all($queryTerbaru, MYSQLI_ASSOC) : []
                                             </td>
                                             <td><?php echo htmlspecialchars($order['customer_name'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php echo htmlspecialchars($order['order_date'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td>
+                                                <?php echo formatTanggalSingkat($order['order_end_date']); ?>
+                                                <?php if (cucianLewatTenggat($order['order_end_date'], $order['laundry_status'])): ?>
+                                                    <span class="badge bg-danger">Lewat</span>
+                                                <?php endif ?>
+                                            </td>
                                             <td>Rp <?php echo number_format((int) $order['total'], 0, ',', '.'); ?></td>
                                             <td>
-                                                <?php if ($isLunas): ?>
-                                                    <span class="badge bg-success">Lunas</span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-secondary">Baru</span>
-                                                <?php endif ?>
+                                                <?php echo badgeStatusBayar($order['order_status']); ?>
+                                                <?php echo badgeStatusCucian($order['laundry_status']); ?>
                                             </td>
                                             <td>
                                                 <a href="?page=tambah-order&detail=<?php echo (int) $order['id']; ?>" class="btn btn-sm btn-outline-primary">Detail</a>

@@ -157,3 +157,23 @@ function formatTanggalIndo($date)
 {
     return tanggal($date);
 }
+
+// Format ringkas untuk tabel: 22/11/2026
+function formatTanggalSingkat($date)
+{
+    $waktu = strtotime((string) $date);
+
+    return $waktu ? date('d/m/Y', $waktu) : '-';
+}
+
+// Cucian lewat tenggat bila estimasi sudah lewat dan belum diambil
+function cucianLewatTenggat($endDate, $laundryStatus)
+{
+    $waktu = strtotime((string) $endDate);
+
+    if (!$waktu || (int) $laundryStatus >= 3) {
+        return false;
+    }
+
+    return $waktu < strtotime(date('Y-m-d'));
+}
