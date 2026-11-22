@@ -9,6 +9,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Pembuatan order dengan beberapa layanan sekaligus.
 - Pembayaran tunai beserta kembalian.
 - Cetak struk.
+- Pengaturan toko (nama, alamat, telepon, email) yang dipakai pada struk.
 - Laporan transaksi per rentang tanggal.
 - Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
 - Dashboard ringkasan: order bulan ini, pendapatan, customer aktif, service aktif, order belum dibayar, dan lima order terbaru.
@@ -137,6 +138,7 @@ Lalu simpan hasilnya ke kolom `password` milik user terkait.
 |---|---|---|---|
 | Dashboard | ✔ | – | – |
 | Customer, Service, Level, User | ✔ | – | – |
+| Pengaturan toko | ✔ | – | – |
 | Order dan tambah order | ✔ | ✔ | – |
 | Report | ✔ | – | ✔ |
 
@@ -147,12 +149,14 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 ## Alur Pemakaian
 
 1. Login di `index.php`.
-2. Tambahkan customer dan jenis service pada menu Master Data.
-3. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
-4. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
-5. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
-6. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
-7. Pantau transaksi lewat menu Report atau Dashboard.
+2. Atur identitas toko di menu **Pengaturan** (nama, alamat, telepon, email). Data ini muncul di struk.
+3. Tambahkan customer dan jenis service pada menu Master Data.
+4. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
+5. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
+6. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
+7. Majukan status cucian dari halaman detail: **Dicuci** → **Siap Diambil** → **Sudah Diambil**. Tahap terakhir mencatat serah terima di `trans_laundry_pickup`.
+8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
+9. Pantau transaksi lewat menu Report atau Dashboard.
 
 Catatan perhitungan:
 
@@ -221,7 +225,8 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 
 ## Keterbatasan
 
-- Status order belum mendukung pembatalan atau proses cuci/selesai.
+- Status cucian belum mendukung pembatalan atau mundur satu tahap.
+- Pengaturan toko hanya menyimpan satu baris identitas; belum ada unggah logo.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar order dan customer.
 - Migrasi dijalankan manual, belum ada runner otomatis.

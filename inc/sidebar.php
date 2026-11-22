@@ -45,6 +45,13 @@ $halamanAktif = is_string($_GET['page'] ?? null) ? $_GET['page'] : '';
         </ul>
       </li><!-- End Components Nav -->
 
+      <li class="nav-item<?= $halamanAktif === 'setting' ? ' active' : '' ?>">
+        <a class="nav-link collapsed" href="?page=setting">
+          <i class="bi bi-gear"></i>
+          <span>Pengaturan</span>
+        </a>
+      </li><!-- End Setting Nav -->
+
       <li class="nav-heading">Transaksi</li>
       <li class="nav-item<?= in_array($halamanAktif, ['order', 'tambah-order'], true) ? ' active' : '' ?>">
         <a class="nav-link collapsed" href="?page=order">

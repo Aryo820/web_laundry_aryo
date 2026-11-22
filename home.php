@@ -46,7 +46,7 @@ $_SESSION['id_level'] = $rowSession['id_level'];
 
 // Daftar putih halaman per level: 9 Administrator, 10 Operator, 11 Leader
 $halamanPerLevel = [
-  9  => ['dashboard', 'customer', 'tambah-customer', 'jenis-service', 'tambah-jenis-service', 'level', 'tambah-level', 'user', 'tambah-user', 'order', 'tambah-order', 'report'],
+  9  => ['dashboard', 'customer', 'tambah-customer', 'jenis-service', 'tambah-jenis-service', 'level', 'tambah-level', 'user', 'tambah-user', 'setting', 'order', 'tambah-order', 'report'],
   10 => ['order', 'tambah-order'],
   11 => ['report'],
 ];
