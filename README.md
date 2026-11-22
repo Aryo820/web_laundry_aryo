@@ -149,8 +149,8 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 1. Login di `index.php`.
 2. Tambahkan customer dan jenis service pada menu Master Data.
 3. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
-4. Simpan order. Order baru berstatus **Baru** dan belum dibayar.
-5. Buka detail order, isi jumlah bayar, lalu simpan. Status berubah menjadi **Lunas** dan struk bisa dicetak.
+4. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
+5. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
 6. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
 7. Pantau transaksi lewat menu Report atau Dashboard.
 
@@ -159,7 +159,8 @@ Catatan perhitungan:
 - Qty diisi dalam **kilogram** dan disimpan dalam **gram** di database.
 - Harga layanan disalin ke `trans_order_detail.price` saat order dibuat, sehingga perubahan harga tidak mengubah order lama.
 - Total order dihitung di server, bukan dari input browser.
-- Status order saat ini hanya `0` (Baru) dan `1` (Lunas).
+- Status dibagi dua: pembayaran `0` (Belum Bayar) / `1` (Lunas), dan tahap cucian `0` Antrian, `1` Dicuci, `2` Siap Diambil, `3` Sudah Diambil.
+- Status cucian hanya bisa maju satu tahap, dan **Sudah Diambil** baru bisa dipilih setelah order lunas.
 
 ## Aturan Hapus Data
 

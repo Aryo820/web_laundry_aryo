@@ -10,16 +10,18 @@ function generateOrderCode($config)
 }
 
 $daftarError = [
-    'customer'    => 'Pilih customer terlebih dahulu.',
-    'service'     => 'Tambahkan minimal satu layanan yang valid.',
-    'qty'         => 'Qty harus lebih dari 0.',
-    'tanggal'     => 'Tanggal order tidak valid.',
-    'status'      => 'Status order tidak valid.',
-    'simpan'      => 'Order gagal disimpan. Silakan coba lagi.',
-    'bayar'       => 'Nominal pembayaran tidak valid.',
-    'kurang'      => 'Nominal pembayaran kurang dari total tagihan.',
-    'sudah-bayar' => 'Order ini sudah dibayar.',
-    'csrf'        => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
+    'customer'      => 'Pilih customer terlebih dahulu.',
+    'service'       => 'Tambahkan minimal satu layanan yang valid.',
+    'qty'           => 'Qty harus lebih dari 0.',
+    'tanggal'       => 'Tanggal order tidak valid.',
+    'simpan'        => 'Order gagal disimpan. Silakan coba lagi.',
+    'bayar'         => 'Nominal pembayaran tidak valid.',
+    'kurang'        => 'Nominal pembayaran kurang dari total tagihan.',
+    'sudah-bayar'   => 'Order ini sudah dibayar.',
+    'status-cucian' => 'Perubahan status cucian tidak valid.',
+    'belum-bayar'   => 'Lunasi order dulu sebelum menandai cucian sudah diambil.',
+    'pickup'        => 'Status cucian tersimpan, tetapi catatan pengambilan gagal dibuat.',
+    'csrf'          => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 $gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
 $errorMessage = $daftarError[$gagal] ?? '';
@@ -41,6 +43,83 @@ if ($id_order_detail > 0) {
     $rowDetail = $queryDetail ? mysqli_fetch_all($queryDetail, MYSQLI_ASSOC) : [];
 }
 
+// Status cucian hanya boleh maju satu tahap: antrian → dicuci → siap → diambil
+if (isset($_POST['update_laundry_status'])) {
+    if (!csrfValid()) {
+        header("location:?page=tambah-order&detail=" . $id_order_detail . "&gagal=csrf");
+        exit;
+    }
+
+    if (!$rowOrder) {
+        header("location:?page=order");
+        exit;
+    }
+
+    $id_order = $id_order_detail;
+    $target   = (int) $_POST['update_laundry_status'];
+
+    mysqli_begin_transaction($config);
+
+    // Kunci baris supaya dua klik bersamaan tidak melompati tahap
+    $queryLock = mysqli_query($config, "SELECT order_status, laundry_status, id_customer FROM trans_order WHERE id='$id_order' FOR UPDATE");
+    $rowLock   = $queryLock ? mysqli_fetch_assoc($queryLock) : null;
+
+    if (!$rowLock) {
+        mysqli_rollback($config);
+        header("location:?page=order");
+        exit;
+    }
+
+    $statusBayar    = (int) $rowLock['order_status'];
+    $statusSekarang = (int) $rowLock['laundry_status'];
+
+    if ($target !== $statusSekarang + 1 || $target > 3) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&detail=$id_order&gagal=status-cucian");
+        exit;
+    }
+
+    // Cucian tidak boleh diserahkan sebelum lunas
+    if ($target === 3 && $statusBayar !== 1) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&detail=$id_order&gagal=belum-bayar");
+        exit;
+    }
+
+    $update = mysqli_query($config, "UPDATE trans_order SET laundry_status='$target' WHERE id='$id_order' AND laundry_status='$statusSekarang'");
+
+    if (!$update || mysqli_affected_rows($config) === 0) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&detail=$id_order&gagal=status-cucian");
+        exit;
+    }
+
+    // Catat pengambilan saat cucian benar-benar diserahkan
+    if ($target === 3) {
+        $now         = date('Y-m-d H:i:s');
+        $id_customer = (int) $rowLock['id_customer'];
+        $queryPickup = mysqli_query($config, "SELECT id FROM trans_laundry_pickup WHERE id_order='$id_order' LIMIT 1");
+        $pickup      = $queryPickup ? mysqli_fetch_assoc($queryPickup) : null;
+
+        if ($pickup) {
+            $simpanPickup = mysqli_query($config, "UPDATE trans_laundry_pickup SET pickup_date='$now' WHERE id='" . (int) $pickup['id'] . "'");
+        } else {
+            $simpanPickup = mysqli_query($config, "INSERT INTO trans_laundry_pickup (id_order, id_customer, pickup_date, notes) VALUES ('$id_order', '$id_customer', '$now', '')");
+        }
+
+        if (!$simpanPickup) {
+            mysqli_rollback($config);
+            header("location:?page=tambah-order&detail=$id_order&gagal=pickup");
+            exit;
+        }
+    }
+
+    mysqli_commit($config);
+
+    header("location:?page=tambah-order&detail=$id_order&status-cucian=berhasil");
+    exit;
+}
+
 if (isset($_POST['save'])) {
     if (!csrfValid()) {
         header("location:?page=tambah-order&gagal=csrf");
@@ -48,7 +127,6 @@ if (isset($_POST['save'])) {
     }
 
     $id_customer    = (int) ($_POST['id_customer'] ?? 0);
-    $order_status   = (int) ($_POST['order_status'] ?? 0);
     $order_date     = trim($_POST['order_date'] ?? '');
     $order_end_date = trim($_POST['order_end_date'] ?? '');
     $id_services    = $_POST['id_service'] ?? [];
@@ -65,8 +143,6 @@ if (isset($_POST['save'])) {
 
     if ($id_customer <= 0) {
         $errorCode = 'customer';
-    } elseif (!in_array($order_status, [0, 1], true)) {
-        $errorCode = 'status';
     } elseif (!$tanggalValid($order_date) || !$tanggalValid($order_end_date)) {
         $errorCode = 'tanggal';
     } else {
@@ -126,7 +202,7 @@ if (isset($_POST['save'])) {
 
     mysqli_begin_transaction($config);
 
-    $insertOrder = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, order_date, order_end_date, total, order_pay, order_change) VALUES ('$id_customer', '$order_code', '$order_status', '$order_date', '$order_end_date', '$total', 0, 0)");
+    $insertOrder = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, laundry_status, order_date, order_end_date, total, order_pay, order_change) VALUES ('$id_customer', '$order_code', 0, 0, '$order_date', '$order_end_date', '$total', 0, 0)");
 
     if (!$insertOrder) {
         mysqli_rollback($config);
@@ -194,8 +270,6 @@ if (isset($_POST['save2'])) {
 
     $order_pay    = (int) round($order_pay);
     $order_change = $order_pay - $total;
-    $id_customer  = (int) $rowOrder['id_customer'];
-    $now          = date('Y-m-d H:i:s');
 
     mysqli_begin_transaction($config);
 
@@ -218,23 +292,9 @@ if (isset($_POST['save2'])) {
         exit;
     }
 
-    // Cegah baris pickup ganda (data lama bisa saja sudah punya)
-    $queryPickup = mysqli_query($config, "SELECT id FROM trans_laundry_pickup WHERE id_order='$id_order' LIMIT 1");
-    $pickupAda   = $queryPickup && mysqli_fetch_assoc($queryPickup);
-
-    if (!$pickupAda) {
-        $insertPickup = mysqli_query($config, "INSERT INTO trans_laundry_pickup (id_order, id_customer, pickup_date, notes) VALUES ('$id_order', '$id_customer', '$now', '')");
-
-        if (!$insertPickup) {
-            mysqli_rollback($config);
-            header("location:?page=tambah-order&detail=" . $id_order . "&gagal=simpan");
-            exit;
-        }
-    }
-
     mysqli_commit($config);
 
-    header("location:?page=tambah-order&detail=" . $id_order . "&status-pickup");
+    header("location:?page=tambah-order&detail=" . $id_order . "&bayar=berhasil");
     exit;
 }
 
@@ -264,7 +324,10 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                         <?php if ($errorMessage !== ''): ?>
                             <div class="alert alert-danger"><?php echo htmlspecialchars($errorMessage); ?></div>
                         <?php endif ?>
-                        <?php if (isset($_GET['status-pickup'])): ?>
+                        <?php if (isset($_GET['status-cucian'])): ?>
+                            <div class="alert alert-success">Status cucian berhasil diperbarui.</div>
+                        <?php endif ?>
+                        <?php if (isset($_GET['bayar'])): ?>
                             <div class="alert alert-success">Pembayaran berhasil disimpan.</div>
                         <?php endif ?>
                         <div class="table-responsive mb-3">
@@ -289,9 +352,12 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                     <td><?php echo tanggal($rowOrder['order_end_date']); ?></td>
                                 </tr>
                                 <tr>
-                                    <th>Status</th>
+                                    <th>Pembayaran</th>
                                     <td>:</td>
-                                    <td><?php echo $rowOrder['order_status'] == 0 ? 'Process' : 'Picked' ?></td>
+                                    <td><?php echo badgeStatusBayar($rowOrder['order_status']); ?></td>
+                                    <th>Status Cucian</th>
+                                    <td>:</td>
+                                    <td><?php echo badgeStatusCucian($rowOrder['laundry_status']); ?></td>
                                 </tr>
                             </table>
                             <br><br>
@@ -339,6 +405,25 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                             </table>
                         </div>
                         <?php if (isset($_GET['detail']) && !isset($_GET['print'])) { ?>
+                            <?php
+                            $statusCucian = (int) $rowOrder['laundry_status'];
+                            $aksiCucian   = [0 => 'Mulai Cuci', 1 => 'Tandai Siap Diambil', 2 => 'Tandai Sudah Diambil'];
+                            $harusLunas   = $statusCucian === 2 && (int) $rowOrder['order_status'] !== 1;
+                            ?>
+                            <?php if ($statusCucian < 3): ?>
+                                <div class="mb-3" align="center">
+                                    <form action="" method="post" class="d-inline">
+                                        <?php echo csrfField(); ?>
+                                        <input type="hidden" name="update_laundry_status" value="<?php echo $statusCucian + 1; ?>">
+                                        <button type="submit" class="btn btn-outline-primary"<?php echo $harusLunas ? ' disabled' : ''; ?>><?php echo $aksiCucian[$statusCucian]; ?></button>
+                                    </form>
+                                    <?php if ($harusLunas): ?>
+                                        <div class="form-text text-danger">Lunasi order dulu sebelum menandai cucian sudah diambil.</div>
+                                    <?php endif ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-center text-muted">Cucian sudah diserahkan ke customer.</p>
+                            <?php endif ?>
                             <?php if ($rowOrder['order_status'] == 0) { ?>
                                 <div class="mb-3" align="center">
                                     <!-- Button trigger modal -->
@@ -394,12 +479,8 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                         <input name="order_end_date" type="date" class="form-control" value="<?php echo isset($_GET['edit']) ? $row['order_end_date'] : '' ?>">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="" class="form-label">Order Status</label>
-                                        <select name="order_status" id="" class="form-control">
-                                            <option value="">Select Status</option>
-                                            <option value="0">Process</option>
-                                            <option value="1">Pick Up</option>
-                                        </select>
+                                        <label class="form-label">Status Awal</label>
+                                        <input type="text" class="form-control" value="Belum Bayar / Antrian" readonly>
                                     </div>
                                 </div>
                             </div>
