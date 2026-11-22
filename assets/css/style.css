@@ -798,24 +798,48 @@ h6 {
 
 /* Info Cards */
 .dashboard .info-card {
-  padding-bottom: 10px;
+  height: 100%;
+  container-type: inline-size;
+}
+
+.dashboard .info-card .card-body {
+  padding: 20px;
+}
+
+.dashboard .info-card .card-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 12px;
+  font-size: 22px;
+  line-height: 0;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+.dashboard .info-card .card-title {
+  margin: 0 0 2px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
 .dashboard .info-card h6 {
-  font-size: 28px;
-  color: #012970;
-  font-weight: 700;
   margin: 0;
   padding: 0;
+  font-size: 26px;
+  font-size: clamp(20px, 11cqi, 28px);
+  line-height: 1.25;
+  font-weight: 700;
+  color: #012970;
+  white-space: nowrap;
 }
 
-.dashboard .card-icon {
-  font-size: 32px;
-  line-height: 0;
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  flex-grow: 0;
+.dashboard .info-card .info-card-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #5c6f91;
 }
 
 .dashboard .sales-card .card-icon {
@@ -831,6 +855,16 @@ h6 {
 .dashboard .customers-card .card-icon {
   color: #ff771d;
   background: #ffecdf;
+}
+
+.dashboard .services-card .card-icon {
+  color: #6f42c1;
+  background: #f0eafa;
+}
+
+.dashboard .unpaid-card .card-icon {
+  color: #dc3545;
+  background: #fdecee;
 }
 
 /* Activity */
