@@ -34,7 +34,7 @@ index.php                 Halaman login
 home.php                  Layout utama + router halaman
 logout.php                Keluar dan hapus session
 print.php                 Cetak struk
-content/                  Isi halaman (dashboard, order, report, master data)
+content/                  Isi halaman (dashboard, order, report, master data, pengaturan)
 inc/                      Header, sidebar, dan header keamanan
 database/migrations/      Migrasi SQL manual
 assets/                   CSS, JS, gambar, dan library
@@ -230,3 +230,12 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar order dan customer.
 - Migrasi dijalankan manual, belum ada runner otomatis.
+
+## Riwayat Versi
+
+### v1.1.0
+- Status pembayaran dipisah dari tahap cucian: Antrian, Dicuci, Siap Diambil, Sudah Diambil.
+- Status cucian hanya bisa maju satu tahap; **Sudah Diambil** baru bisa dipilih setelah order lunas.
+- Estimasi selesai tampil di daftar order, dashboard, dan struk, lengkap dengan penanda **Lewat**.
+- Halaman **Pengaturan Toko** untuk mengubah identitas yang dipakai pada struk.
+- Pembayaran tidak lagi otomatis menandai cucian sudah diambil; serah terima dicatat terpisah.
