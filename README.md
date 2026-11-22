@@ -175,7 +175,7 @@ Semua penghapusan memakai `POST`, dialog konfirmasi, dan token CSRF.
 - Session ID diperbarui setelah login berhasil.
 - Login dibatasi 5 kali gagal per email + IP dalam 15 menit.
 - Header keamanan: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, dan `Permissions-Policy`.
-- Seluruh output data user di-escape dengan `htmlspecialchars`.
+- Output pada halaman daftar dan form di-escape dengan `htmlspecialchars`.
 
 Sebelum dipakai di produksi:
 
