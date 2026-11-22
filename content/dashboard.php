@@ -51,66 +51,86 @@ $rowTerbaru = $queryTerbaru ? mysqli_fetch_all($queryTerbaru, MYSQLI_ASSOC) : []
     <div class="row">
 
         <div class="col-xxl col-md-6">
-            <div class="card info-card sales-card h-100">
+            <div class="card info-card sales-card">
                 <div class="card-body">
-                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-cart"></i>
+                    <h5 class="card-title">Order <span>| Bulan Ini</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-cart"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo number_format($orderBulan, 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">order tercatat</span>
+                        </div>
                     </div>
-                    <h5 class="card-title">Order</h5>
-                    <h6><?php echo number_format($orderBulan, 0, ',', '.'); ?></h6>
-                    <span class="info-card-note">order bulan ini</span>
                 </div>
             </div>
         </div>
 
         <div class="col-xxl col-md-6">
-            <div class="card info-card revenue-card h-100">
+            <div class="card info-card revenue-card">
                 <div class="card-body">
-                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-cash-coin"></i>
+                    <h5 class="card-title">Pendapatan <span>| Bulan Ini</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6 style="font-size: 22px;">Rp <?php echo number_format($pendapatan, 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">dari order lunas</span>
+                        </div>
                     </div>
-                    <h5 class="card-title">Pendapatan</h5>
-                    <h6>Rp <?php echo number_format($pendapatan, 0, ',', '.'); ?></h6>
-                    <span class="info-card-note">order lunas bulan ini</span>
                 </div>
             </div>
         </div>
 
         <div class="col-xxl col-md-6">
-            <div class="card info-card customers-card h-100">
+            <div class="card info-card customers-card">
                 <div class="card-body">
-                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-people"></i>
+                    <h5 class="card-title">Customer <span>| Aktif</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo number_format($totalCustomer, 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">customer terdaftar</span>
+                        </div>
                     </div>
-                    <h5 class="card-title">Customer</h5>
-                    <h6><?php echo number_format($totalCustomer, 0, ',', '.'); ?></h6>
-                    <span class="info-card-note">customer aktif</span>
                 </div>
             </div>
         </div>
 
         <div class="col-xxl col-md-6">
-            <div class="card info-card services-card h-100">
+            <div class="card info-card">
                 <div class="card-body">
-                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-tags"></i>
+                    <h5 class="card-title">Jenis Service <span>| Aktif</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center" style="color: #6f42c1; background: #f0eafa;">
+                            <i class="bi bi-tags"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo number_format($totalService, 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">layanan tersedia</span>
+                        </div>
                     </div>
-                    <h5 class="card-title">Jenis Service</h5>
-                    <h6><?php echo number_format($totalService, 0, ',', '.'); ?></h6>
-                    <span class="info-card-note">layanan aktif</span>
                 </div>
             </div>
         </div>
 
         <div class="col-xxl col-md-6">
-            <div class="card info-card unpaid-card h-100">
+            <div class="card info-card">
                 <div class="card-body">
-                    <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-exclamation-circle"></i>
+                    <h5 class="card-title">Belum Bayar <span>| Order</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center" style="color: #dc3545; background: #fdecee;">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo number_format($belumBayar, 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">perlu diselesaikan</span>
+                        </div>
                     </div>
-                    <h5 class="card-title">Belum Bayar</h5>
-                    <h6><?php echo number_format($belumBayar, 0, ',', '.'); ?></h6>
-                    <span class="info-card-note">perlu diselesaikan</span>
                 </div>
             </div>
         </div>
