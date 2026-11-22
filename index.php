@@ -4,8 +4,8 @@ require_once 'config/koneksi.php';
 require_once 'function.php';
 
 if (isset($_POST['login'])) {
-  $email    = $_POST['email'];
-  $password = $_POST['password'];
+  $email    = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
+  $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
   // Cari user berdasarkan email saja, lalu verifikasi password di PHP
   $emailSafe  = mysqli_real_escape_string($config, $email);
@@ -15,6 +15,9 @@ if (isset($_POST['login'])) {
     $rowLogin = mysqli_fetch_assoc($queryLogin);
 
     if (verifyPassword($password, $rowLogin['password'])) {
+      // Cegah session fixation: buang ID lama, pakai ID baru setelah login berhasil
+      session_regenerate_id(true);
+
       // Upgrade otomatis hash lama (SHA1/plaintext) ke bcrypt saat login berhasil
       if (passwordNeedsRehash($rowLogin['password'])) {
         $newHash     = mysqli_real_escape_string($config, hashPassword($password));

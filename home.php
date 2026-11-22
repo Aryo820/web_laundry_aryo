@@ -2,9 +2,6 @@
 // Memulai session agar bisa menggunakan $_SESSION
 session_start();
 
-// Membuat session ID baru dan menghapus session ID lama untuk meningkatkan keamanan (mencegah session fixation)
-session_regenerate_id();
-
 // Mengaktifkan output buffering (penyimpanan output sementara sebelum dikirim ke browser)
 ob_start();
 
@@ -38,6 +35,31 @@ if (!$rowSession) {
 
 $_SESSION['name'] = $rowSession['name'];
 $_SESSION['id_level'] = $rowSession['id_level'];
+
+// Daftar putih halaman per level: 9 Administrator, 10 Operator, 11 Leader
+$halamanPerLevel = [
+  9  => ['dashboard', 'customer', 'tambah-customer', 'jenis-service', 'tambah-jenis-service', 'level', 'tambah-level', 'user', 'tambah-user', 'order', 'tambah-order', 'report'],
+  10 => ['order', 'tambah-order'],
+  11 => ['report'],
+];
+$halamanAwal = [9 => 'dashboard', 10 => 'order', 11 => 'report'];
+$levelSession = (int) $_SESSION['id_level'];
+
+// Level tidak dikenal: tutup session, jangan beri akses apa pun
+if (!isset($halamanPerLevel[$levelSession])) {
+  session_unset();
+  session_destroy();
+  header('Location: index.php');
+  exit;
+}
+
+$halaman = is_string($_GET['page'] ?? null) ? $_GET['page'] : $halamanAwal[$levelSession];
+
+// Halaman di luar hak akses dialihkan ke halaman awal sesuai level
+if (!in_array($halaman, $halamanPerLevel[$levelSession], true)) {
+  header('Location: ?page=' . $halamanAwal[$levelSession]);
+  exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -93,14 +115,12 @@ $_SESSION['id_level'] = $rowSession['id_level'];
   <main id="main" class="main">
 
     <?php
-    if (isset($_GET['page'])) {
-      if (file_exists('content/' . $_GET['page'] . ".php")) {
-        include 'content/' . $_GET['page'] . ".php";
-      } else {
-        include 'content/notfound.php';
-      }
+    $fileHalaman = 'content/' . $halaman . '.php';
+
+    if (file_exists($fileHalaman)) {
+      include $fileHalaman;
     } else {
-      include 'content/dashboard.php';
+      include 'content/notfound.php';
     }
     ?>
 
