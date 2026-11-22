@@ -82,8 +82,7 @@ if (!in_array($halaman, $halamanPerLevel[$levelSession], true)) {
   <meta content="" name="keywords">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="img/text.gif" rel="icon" type="image/gif">
 
   <!-- Google Fonts -->
   <link href="https://fonts.gstatic.com" rel="preconnect">
