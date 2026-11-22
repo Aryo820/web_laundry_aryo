@@ -1,10 +1,4 @@
 <?php
-function tanggal($date)
-{
-    $waktu = strtotime($date);
-    return date('d F Y', $waktu);
-}
-
 // Membuat kode order berikutnya: TR-ddmmyy-NNN
 function generateOrderCode($config)
 {

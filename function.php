@@ -113,3 +113,47 @@ function loginAttemptCleanup($config, $days = 1)
 
     mysqli_query($config, "DELETE FROM login_attempt WHERE attempted_at < DATE_SUB(NOW(), INTERVAL $days DAY)");
 }
+
+// Status pembayaran: 0 belum bayar, 1 lunas
+function labelStatusBayar($status)
+{
+    return (int) $status === 1 ? 'Lunas' : 'Belum Bayar';
+}
+
+function badgeStatusBayar($status)
+{
+    if ((int) $status === 1) {
+        return '<span class="badge bg-success">Lunas</span>';
+    }
+
+    return '<span class="badge bg-danger">Belum Bayar</span>';
+}
+
+// Tahap cucian: 0 antrian, 1 dicuci, 2 siap diambil, 3 sudah diambil
+function labelStatusCucian($status)
+{
+    $daftar = [0 => 'Antrian', 1 => 'Dicuci', 2 => 'Siap Diambil', 3 => 'Sudah Diambil'];
+
+    return $daftar[(int) $status] ?? $daftar[0];
+}
+
+function badgeStatusCucian($status)
+{
+    $status = (int) $status;
+    $kelas  = [0 => 'bg-secondary', 1 => 'bg-info text-dark', 2 => 'bg-primary', 3 => 'bg-success'];
+
+    return '<span class="badge ' . ($kelas[$status] ?? 'bg-secondary') . '">' . labelStatusCucian($status) . '</span>';
+}
+
+// Format tanggal yang dipakai halaman detail dan struk
+function tanggal($date)
+{
+    $waktu = strtotime((string) $date);
+
+    return $waktu ? date('d F Y', $waktu) : '-';
+}
+
+function formatTanggalIndo($date)
+{
+    return tanggal($date);
+}

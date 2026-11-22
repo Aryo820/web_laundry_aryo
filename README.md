@@ -74,6 +74,7 @@ Migrasi wajib dijalankan setelah impor, dengan urutan berikut:
 mysql -uroot -D laundry_1 < database/migrations/001_deleted_at.sql
 mysql -uroot -D laundry_1 < database/migrations/002_order_detail_price.sql
 mysql -uroot -D laundry_1 < database/migrations/003_login_attempt.sql
+mysql -uroot -D laundry_1 < database/migrations/004_laundry_status.sql
 ```
 
 | Migrasi | Isi |
@@ -81,6 +82,7 @@ mysql -uroot -D laundry_1 < database/migrations/003_login_attempt.sql
 | `001_deleted_at.sql` | Mengubah `deleted_at` menjadi NULL agar data lama tampil dan soft delete bekerja |
 | `002_order_detail_price.sql` | Menambah kolom `price` (snapshot harga) dan memperbaiki subtotal lama |
 | `003_login_attempt.sql` | Membuat tabel `login_attempt` untuk pembatas percobaan login |
+| `004_laundry_status.sql` | Menambah kolom `laundry_status` untuk memisahkan status pembayaran dari tahap cucian |
 
 Semua migrasi aman dijalankan berulang.
 
