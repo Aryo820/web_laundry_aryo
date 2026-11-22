@@ -467,6 +467,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
     </div>
 </div>
 <?php endif ?>
+<?php if (!isset($_GET['detail'])): ?>
 <script>
     // var, let, const
     // var : ketika nilainya tidak ada, maka tidak ada error
@@ -556,3 +557,4 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
         grandTotalInput.value = grand;
     }
 </script>
+<?php endif ?>
