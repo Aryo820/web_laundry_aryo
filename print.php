@@ -9,6 +9,7 @@ session_set_cookie_params([
 ]);
 session_start();
 require_once 'config/koneksi.php';
+require_once 'function.php';
 
 // Struk hanya boleh dibuka oleh user yang sudah login dan masih terdaftar
 $idUser = (int) ($_SESSION['id'] ?? 0);
@@ -39,6 +40,7 @@ $query = mysqli_query($config, "
         trans_order_detail.subtotal,
         trans_order.order_code,
         trans_order.order_date,
+        trans_order.order_end_date,
         trans_order.order_status,
         trans_order.order_pay,
         trans_order.order_change,
@@ -170,6 +172,10 @@ if ($id_level > 0) {
             <div class="row">
                 <span>Customer Name: </span>
                 <span><?php echo htmlspecialchars($order['customer_name'] ?? '-'); ?></span>
+            </div>
+            <div class="row">
+                <span>Estimasi selesai: </span>
+                <span><?php echo htmlspecialchars(formatTanggalIndo($order['order_end_date'])); ?></span>
             </div>
         </div>
         <div class="line"></div>
