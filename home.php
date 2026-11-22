@@ -1,5 +1,12 @@
 <?php
 // Memulai session agar bisa menggunakan $_SESSION
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+  'lifetime' => 0,
+  'path'     => '/',
+  'httponly' => true,
+  'samesite' => 'Lax',
+]);
 session_start();
 
 // Mengaktifkan output buffering (penyimpanan output sementara sebelum dikirim ke browser)

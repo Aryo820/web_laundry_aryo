@@ -21,7 +21,9 @@ $form = [
 if (isset($_POST['save'])) {
     $form['level_name'] = is_string($_POST['level_name'] ?? null) ? trim($_POST['level_name']) : '';
 
-    if ($form['level_name'] === '') {
+    if (!csrfValid()) {
+        $error = 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.';
+    } elseif ($form['level_name'] === '') {
         $error = 'Nama level wajib diisi.';
     } elseif (mb_strlen($form['level_name']) > 50) {
         $error = 'Nama level maksimal 50 karakter.';
@@ -61,6 +63,7 @@ if (isset($_POST['save'])) {
                         <div class="alert alert-danger"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif ?>
                     <form action="" method="post">
+                        <?php echo csrfField(); ?>
                         <div class="mb-3">
                             <label for="" class="form-label">Name Level</label>
                             <input name="level_name" type="text" class="form-control" maxlength="50" value="<?php echo htmlspecialchars($form['level_name'], ENT_QUOTES, 'UTF-8'); ?>" placeholder="Enter your name level" required>

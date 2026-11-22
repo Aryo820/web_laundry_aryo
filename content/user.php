@@ -3,10 +3,16 @@ $pesanGagal = [
     'tidak-ditemukan' => 'User tidak ditemukan.',
     'sendiri'         => 'Anda tidak bisa menghapus akun yang sedang digunakan.',
     'simpan'          => 'User gagal disimpan. Silakan coba lagi.',
+    'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
 // Hapus user memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_user'])) {
+    if (!csrfValid()) {
+        header('location:?page=user&gagal=csrf');
+        exit;
+    }
+
     $id_user = (int) $_POST['delete_user'];
     $gagalCode = 'tidak-ditemukan';
 
@@ -86,6 +92,7 @@ $idSession = (int) ($_SESSION['id'] ?? 0);
                                                 <span class="badge bg-secondary">Akun Anda</span>
                                             <?php else: ?>
                                                 <form action="?page=user" method="post" class="d-inline" onsubmit="return confirm('Hapus user ini secara permanen?');">
+                                                    <?php echo csrfField(); ?>
                                                     <input type="hidden" name="delete_user" value="<?php echo (int) $user['id']; ?>">
                                                     <button type="submit" class="btn btn-danger">Delete</button>
                                                 </form>

@@ -25,7 +25,9 @@ if (isset($_POST['save'])) {
     $form['phone']         = is_string($_POST['phone'] ?? null) ? trim($_POST['phone']) : '';
     $form['address']       = is_string($_POST['address'] ?? null) ? trim($_POST['address']) : '';
 
-    if ($form['customer_name'] === '') {
+    if (!csrfValid()) {
+        $error = 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.';
+    } elseif ($form['customer_name'] === '') {
         $error = 'Nama customer wajib diisi.';
     } elseif (mb_strlen($form['customer_name']) > 50) {
         $error = 'Nama customer maksimal 50 karakter.';
@@ -65,6 +67,7 @@ if (isset($_POST['save'])) {
                         <div class="alert alert-danger"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif ?>
                     <form action="" method="post">
+                        <?php echo csrfField(); ?>
                         <div class="mb-3">
                             <label for="" class="form-label">Name</label>
                             <input name="customer_name" type="text" class="form-control" maxlength="50" value="<?php echo htmlspecialchars($form['customer_name'], ENT_QUOTES, 'UTF-8'); ?>" placeholder="Enter your name" required>

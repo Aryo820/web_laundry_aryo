@@ -3,10 +3,16 @@ $pesanGagal = [
     'tidak-ditemukan' => 'Level tidak ditemukan atau sudah dihapus.',
     'dipakai'         => 'Level tidak bisa dihapus karena masih dipakai oleh user.',
     'simpan'          => 'Level gagal disimpan. Silakan coba lagi.',
+    'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
 // Hapus level memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_level'])) {
+    if (!csrfValid()) {
+        header('location:?page=level&gagal=csrf');
+        exit;
+    }
+
     $id_level = (int) $_POST['delete_level'];
     $gagalCode = 'tidak-ditemukan';
 
@@ -81,6 +87,7 @@ $notifGagal = $pesanGagal[$gagal] ?? '';
                                         <td>
                                             <a href="?page=tambah-level&edit=<?php echo (int) $level['id']; ?>" class="btn btn-warning">Edit</a>
                                             <form action="?page=level" method="post" class="d-inline" onsubmit="return confirm('Hapus level ini?');">
+                                                <?php echo csrfField(); ?>
                                                 <input type="hidden" name="delete_level" value="<?php echo (int) $level['id']; ?>">
                                                 <button type="submit" class="btn btn-danger">Delete</button>
                                             </form>

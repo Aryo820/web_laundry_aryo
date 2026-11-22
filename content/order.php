@@ -2,10 +2,16 @@
 $pesanGagal = [
     'tidak-ditemukan' => 'Order tidak ditemukan atau sudah dihapus.',
     'lunas'           => 'Order yang sudah lunas tidak bisa dihapus.',
+    'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
 // Hapus order memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_order'])) {
+    if (!csrfValid()) {
+        header('location:?page=order&gagal=csrf');
+        exit;
+    }
+
     $id_order = (int) $_POST['delete_order'];
     $gagalCode = 'tidak-ditemukan';
 
@@ -89,6 +95,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                             <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning">Print</a>
                                             <?php if (!$isLunas): ?>
                                                 <form action="?page=order" method="post" class="d-inline" onsubmit="return confirm('Hapus order ini?');">
+                                                    <?php echo csrfField(); ?>
                                                     <input type="hidden" name="delete_order" value="<?php echo (int) $order['id']; ?>">
                                                     <button type="submit" class="btn btn-danger">Delete</button>
                                                 </form>

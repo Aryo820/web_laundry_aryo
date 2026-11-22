@@ -2,10 +2,16 @@
 $pesanGagal = [
     'tidak-ditemukan' => 'Customer tidak ditemukan atau sudah dihapus.',
     'simpan'          => 'Customer gagal disimpan. Silakan coba lagi.',
+    'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
 // Hapus customer memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_customer'])) {
+    if (!csrfValid()) {
+        header('location:?page=customer&gagal=csrf');
+        exit;
+    }
+
     $id_customer = (int) $_POST['delete_customer'];
     $dihapus = false;
 
@@ -75,6 +81,7 @@ $notifGagal = $pesanGagal[$gagal] ?? '';
                                     <a href="?page=tambah-order&id_customer=<?php echo (int) $customer['id']; ?>" class="btn btn-secondary">Order</a>
                                     <a href="?page=tambah-customer&edit=<?php echo (int) $customer['id']; ?>" class="btn btn-warning">Edit</a>
                                     <form action="?page=customer" method="post" class="d-inline" onsubmit="return confirm('Hapus customer ini? Data order lama tetap tersimpan.');">
+                                        <?php echo csrfField(); ?>
                                         <input type="hidden" name="delete_customer" value="<?php echo (int) $customer['id']; ?>">
                                         <button type="submit" class="btn btn-danger">Delete</button>
                                     </form>

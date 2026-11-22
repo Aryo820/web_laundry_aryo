@@ -32,7 +32,9 @@ if (isset($_POST['save'])) {
     $queryLevelCek = mysqli_query($config, "SELECT id FROM level WHERE id='" . (int) $form['id_level'] . "' AND deleted_at IS NULL LIMIT 1");
     $levelValid = $queryLevelCek && mysqli_num_rows($queryLevelCek) > 0;
 
-    if (!$levelValid) {
+    if (!csrfValid()) {
+        $error = 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.';
+    } elseif (!$levelValid) {
         $error = 'Pilih level yang valid dan masih aktif.';
     } elseif ($form['name'] === '') {
         $error = 'Nama user wajib diisi.';
@@ -98,6 +100,7 @@ if (isset($_POST['save'])) {
                         <div class="alert alert-danger"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif ?>
                     <form action="" method="post" autocomplete="off">
+                        <?php echo csrfField(); ?>
                         <div class="mb-3">
                             <label for="" class="form-label">Level *</label>
                             <select name="id_level" class="form-control" required>

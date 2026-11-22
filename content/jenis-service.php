@@ -2,10 +2,16 @@
 $pesanGagal = [
     'tidak-ditemukan' => 'Jenis service tidak ditemukan atau sudah dihapus.',
     'simpan'          => 'Jenis service gagal disimpan. Silakan coba lagi.',
+    'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
 // Hapus jenis service memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_service'])) {
+    if (!csrfValid()) {
+        header('location:?page=jenis-service&gagal=csrf');
+        exit;
+    }
+
     $id_service = (int) $_POST['delete_service'];
     $dihapus = false;
 
@@ -74,6 +80,7 @@ $notifGagal = $pesanGagal[$gagal] ?? '';
                                         <td>
                                             <a href="?page=tambah-jenis-service&edit=<?php echo (int) $service['id']; ?>" class="btn btn-warning">Edit</a>
                                             <form action="?page=jenis-service" method="post" class="d-inline" onsubmit="return confirm('Hapus jenis service ini? Order lama tetap menyimpan harga saat transaksi.');">
+                                                <?php echo csrfField(); ?>
                                                 <input type="hidden" name="delete_service" value="<?php echo (int) $service['id']; ?>">
                                                 <button type="submit" class="btn btn-danger">Delete</button>
                                             </form>

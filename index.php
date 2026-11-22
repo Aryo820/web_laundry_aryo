@@ -1,9 +1,21 @@
 <?php
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+  'lifetime' => 0,
+  'path'     => '/',
+  'httponly' => true,
+  'samesite' => 'Lax',
+]);
 session_start();
 require_once 'config/koneksi.php';
 require_once 'function.php';
 
 if (isset($_POST['login'])) {
+  if (!csrfValid()) {
+    header("location:index.php?login=csrf");
+    exit;
+  }
+
   $email    = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
   $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
@@ -103,12 +115,22 @@ if (isset($_POST['login'])) {
 
                 <div class="card-body">
 
+                  <?php
+                  $loginStatus = is_string($_GET['login'] ?? null) ? $_GET['login'] : '';
+                  if ($loginStatus === 'failed'):
+                  ?>
+                    <div class="alert alert-danger">Email atau password salah.</div>
+                  <?php elseif ($loginStatus === 'csrf'): ?>
+                    <div class="alert alert-danger">Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.</div>
+                  <?php endif ?>
+
                   <div class="pt-4 pb-2">
                     <h5 class="card-title text-center pb-0 fs-4">Login to Your Account</h5>
                     <p class="text-center small">Enter your email & password to login</p>
                   </div>
 
                   <form method="post" class="row g-3 needs-validation" novalidate>
+                    <?php echo csrfField(); ?>
 
                     <div class="col-12">
                       <label for="yourUsername" class="form-label">Email</label>

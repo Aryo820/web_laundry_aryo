@@ -20,6 +20,11 @@ $date = $minDate;
 $end_date = $maxDate;
 
 if (isset($_POST['filter'])) {
+    if (!csrfValid()) {
+        header('location:?page=report&gagal=csrf');
+        exit;
+    }
+
     $inputDate = is_string($_POST['date'] ?? null) ? $_POST['date'] : '';
     $inputEnd  = is_string($_POST['end_date'] ?? null) ? $_POST['end_date'] : '';
 
@@ -57,6 +62,9 @@ $queryTransOrderDetail = mysqli_query($config, "
     ORDER BY trans_order.order_date ASC, trans_order.id ASC, trans_order_detail.id ASC
 ");
 $rowTransOrderDetail = $queryTransOrderDetail ? mysqli_fetch_all($queryTransOrderDetail, MYSQLI_ASSOC) : [];
+
+$gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
+$notifGagal = $gagal === 'csrf' ? 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.' : '';
 ?>
 <section class="section">
     <div class="row">
@@ -64,7 +72,11 @@ $rowTransOrderDetail = $queryTransOrderDetail ? mysqli_fetch_all($queryTransOrde
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Data Report</h5>
+                    <?php if ($notifGagal !== ''): ?>
+                        <div class="alert alert-danger"><?php echo htmlspecialchars($notifGagal); ?></div>
+                    <?php endif ?>
                     <form action="" method="post">
+                        <?php echo csrfField(); ?>
                         <label for="">Start Date</label>
                         <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>">
                         <label for="">End Date</label>

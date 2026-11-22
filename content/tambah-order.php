@@ -25,6 +25,7 @@ $daftarError = [
     'bayar'       => 'Nominal pembayaran tidak valid.',
     'kurang'      => 'Nominal pembayaran kurang dari total tagihan.',
     'sudah-bayar' => 'Order ini sudah dibayar.',
+    'csrf'        => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 $gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
 $errorMessage = $daftarError[$gagal] ?? '';
@@ -47,6 +48,11 @@ if ($id_order_detail > 0) {
 }
 
 if (isset($_POST['save'])) {
+    if (!csrfValid()) {
+        header("location:?page=tambah-order&gagal=csrf");
+        exit;
+    }
+
     $id_customer    = (int) ($_POST['id_customer'] ?? 0);
     $order_status   = (int) ($_POST['order_status'] ?? 0);
     $order_date     = trim($_POST['order_date'] ?? '');
@@ -160,6 +166,11 @@ if (isset($_POST['save'])) {
 }
 
 if (isset($_POST['save2'])) {
+    if (!csrfValid()) {
+        header("location:?page=tambah-order&detail=" . $id_order_detail . "&gagal=csrf");
+        exit;
+    }
+
     // Pembayaran hanya bisa dari halaman detail order yang valid
     if (!$rowOrder) {
         header("location:?page=order");
@@ -348,6 +359,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                             <div class="alert alert-danger"><?php echo htmlspecialchars($errorMessage); ?></div>
                         <?php endif ?>
                         <form action="" method="post">
+                            <?php echo csrfField(); ?>
                             <div class="row">
                                 <div class="col-sm-6">
                                     <div class="mb-3">
@@ -436,6 +448,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="" method="post">
+                <?php echo csrfField(); ?>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="total" class="form-label">Total</label>
