@@ -10,6 +10,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Pembayaran tunai beserta kembalian.
 - Cetak struk.
 - Laporan transaksi per rentang tanggal.
+- Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
 - Dashboard ringkasan: order bulan ini, pendapatan, customer aktif, service aktif, order belum dibayar, dan lima order terbaru.
 
 ## Kebutuhan
@@ -139,6 +140,8 @@ Lalu simpan hasilnya ke kolom `password` milik user terkait.
 
 Level lain atau halaman di luar hak akses akan dialihkan ke halaman awal sesuai level. Level yang tidak dikenal akan diakhiri session-nya.
 
+Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, karena hanya keduanya yang boleh membuka daftar order.
+
 ## Alur Pemakaian
 
 1. Login di `index.php`.
@@ -146,7 +149,8 @@ Level lain atau halaman di luar hak akses akan dialihkan ke halaman awal sesuai 
 3. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
 4. Simpan order. Order baru berstatus **Baru** dan belum dibayar.
 5. Buka detail order, isi jumlah bayar, lalu simpan. Status berubah menjadi **Lunas** dan struk bisa dicetak.
-6. Pantau transaksi lewat menu Report atau Dashboard.
+6. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
+7. Pantau transaksi lewat menu Report atau Dashboard.
 
 Catatan perhitungan:
 
@@ -215,6 +219,6 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 ## Keterbatasan
 
 - Status order belum mendukung pembatalan atau proses cuci/selesai.
-- Form pencarian di header belum terhubung ke data mana pun.
+- Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar order dan customer.
 - Migrasi dijalankan manual, belum ada runner otomatis.

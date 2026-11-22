@@ -38,10 +38,22 @@ if (isset($_POST['delete_order'])) {
     exit;
 }
 
+// Pencarian dari header: kode order, nama customer, atau nomor telepon
+$cari = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
+$cari = mb_substr($cari, 0, 50);
+
+$kondisiCari = '';
+if ($cari !== '') {
+    // Escape wildcard agar '%' dan '_' dicari sebagai karakter biasa
+    $cariLike = addcslashes($cari, '%_');
+    $cariSafe = mysqli_real_escape_string($config, $cariLike);
+    $kondisiCari = " AND (trans_order.order_code LIKE '%$cariSafe%' OR customer.customer_name LIKE '%$cariSafe%' OR customer.phone LIKE '%$cariSafe%')";
+}
+
 $queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_status, customer.customer_name
 FROM trans_order
 LEFT JOIN customer ON trans_order.id_customer = customer.id
-WHERE trans_order.deleted_at IS NULL
+WHERE trans_order.deleted_at IS NULL$kondisiCari
 ORDER BY trans_order.id DESC");
 $rowOrder = $queryOrder ? mysqli_fetch_all($queryOrder, MYSQLI_ASSOC) : [];
 
@@ -63,6 +75,13 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                     <?php if ($notifGagal !== ''): ?>
                         <div class="alert alert-danger"><?php echo htmlspecialchars($notifGagal, ENT_QUOTES, 'UTF-8'); ?></div>
                     <?php endif ?>
+                    <?php if ($cari !== ''): ?>
+                        <div class="alert alert-info">
+                            Hasil pencarian untuk <strong><?php echo htmlspecialchars($cari, ENT_QUOTES, 'UTF-8'); ?></strong>:
+                            <?php echo count($rowOrder); ?> order.
+                            <a href="?page=order" class="alert-link">Tampilkan semua</a>
+                        </div>
+                    <?php endif ?>
                     <div class="table-responsive">
                         <div class="mb-3" align="right">
                             <a href="?page=tambah-order" class="btn btn-primary">Add Order</a>
@@ -78,6 +97,13 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                 </tr>
                             </thead>
                             <tbody>
+                                <?php if (empty($rowOrder)): ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            <?php echo $cari !== '' ? 'Tidak ada order yang cocok.' : 'Belum ada order.'; ?>
+                                        </td>
+                                    </tr>
+                                <?php endif ?>
                                 <?php foreach ($rowOrder as $order): ?>
                                     <?php $isLunas = (int) $order['order_status'] === 1; ?>
                                     <tr>
