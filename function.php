@@ -167,6 +167,47 @@ function labelMetodeBayar($metode)
     return is_string($metode) && isset($daftar[$metode]) ? $daftar[$metode] : '-';
 }
 
+// Pengaturan struk: ukuran kertas, footer, dan logo toko
+function ukuranKertasValid($ukuran)
+{
+    return in_array((string) $ukuran, ['58', '80'], true);
+}
+
+function labelUkuranKertas($ukuran)
+{
+    return ukuranKertasValid($ukuran) ? (int) $ukuran . ' mm' : '80 mm';
+}
+
+function footerStruk(array $setting)
+{
+    $footer = trim((string) ($setting['receipt_footer'] ?? ''));
+
+    return $footer === '' ? 'Terima Kasih!!' : $footer;
+}
+
+// Hanya file di assets/uploads yang boleh dipakai sebagai logo struk
+function logoStruk(array $setting)
+{
+    $logo = trim((string) ($setting['receipt_logo'] ?? ''));
+
+    if ($logo === '') {
+        return '';
+    }
+
+    $folder = realpath(__DIR__ . '/assets/uploads');
+    $file   = realpath(__DIR__ . '/' . $logo);
+
+    if ($folder === false || $file === false || !is_file($file)) {
+        return '';
+    }
+
+    if (strpos($file, $folder . DIRECTORY_SEPARATOR) !== 0) {
+        return '';
+    }
+
+    return $logo;
+}
+
 // Format tanggal yang dipakai halaman detail dan struk
 function tanggal($date)
 {

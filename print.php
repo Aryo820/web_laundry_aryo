@@ -68,6 +68,10 @@ if (empty($row)) {
 $order = $row[0];
 $jam = date('H:i', strtotime($order['created_at']));
 
+$lebarKertas = ukuranKertasValid($rowSetting['receipt_paper'] ?? null) ? (int) $rowSetting['receipt_paper'] : 80;
+$logoPath    = logoStruk($rowSetting ?? []);
+$teksFooter  = footerStruk($rowSetting ?? []);
+
 $id_level = (int) ($_SESSION['id_level'] ?? 0);
 $rowLevel = ['level_name' => '-'];
 
@@ -89,9 +93,11 @@ if ($id_level > 0) {
     <style>
         body {
             font-family: 'Courier New';
-            width: 80mm;
+            box-sizing: border-box;
+            width: <?php echo $lebarKertas; ?>mm;
             margin: auto;
-            padding: 10px;
+            padding: <?php echo $lebarKertas === 58 ? '4px' : '8px'; ?>;
+            font-size: <?php echo $lebarKertas === 58 ? '11px' : '13px'; ?>;
         }
 
         .struk {
@@ -135,9 +141,14 @@ if ($id_level > 0) {
             margin-top: 10px;
         }
 
+        @page {
+            size: <?php echo $lebarKertas; ?>mm auto;
+            margin: 0;
+        }
+
         @media print {
             body {
-                width: 80mm;
+                width: <?php echo $lebarKertas; ?>mm;
                 margin: 0;
             }
         }
@@ -148,6 +159,9 @@ if ($id_level > 0) {
     <div class="struk">
         <div class="struk-header">
             <div class="info text-center">
+                <?php if ($logoPath !== ''): ?>
+                    <img src="<?php echo htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8'); ?>" alt="Logo toko" style="max-width: 70%; max-height: 20mm; object-fit: contain; margin-bottom: 4px;">
+                <?php endif ?>
                 <h3>
                     <p><?php echo htmlspecialchars($rowSetting['name'] ?? '-'); ?></p>
                 </h3>
@@ -214,7 +228,7 @@ if ($id_level > 0) {
         </div>
         <div class="line"></div>
         <div class="footer" class="text-center">
-            Terima Kasih!!
+            <?php echo htmlspecialchars($teksFooter, ENT_QUOTES, 'UTF-8'); ?>
         </div>
     </div>
     <script>

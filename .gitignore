@@ -1,0 +1,3 @@
+# Upload logo toko tidak ikut di-commit
+assets/uploads/*
+!assets/uploads/.gitkeep

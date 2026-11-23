@@ -8,8 +8,8 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Master data: customer, jenis service, level, dan user.
 - Pembuatan order dengan beberapa layanan sekaligus.
 - Pembayaran tunai, transfer, atau QRIS beserta kembalian.
-- Cetak struk.
-- Pengaturan toko (nama, alamat, telepon, email) yang dipakai pada struk.
+- Cetak struk dengan ukuran kertas 58 mm atau 80 mm, logo toko, dan footer yang bisa diubah.
+- Pengaturan toko (nama, alamat, telepon, email, logo, footer struk, ukuran kertas) yang dipakai pada struk.
 - Laporan transaksi per rentang tanggal: ringkasan order, pendapatan, piutang, total cucian, filter status, rekap per layanan, ekspor CSV, dan halaman cetak.
 - Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
 - Daftar order dengan filter status bayar dan status cucian, serta pagination 10 order per halaman.
@@ -42,6 +42,7 @@ content/                  Isi halaman (dashboard, order, report, master data, pe
 inc/                      Header, sidebar, dan header keamanan
 database/migrations/      Migrasi SQL manual
 assets/                   CSS, JS, gambar, dan library
+assets/uploads/           Logo toko hasil unggah (tidak ikut Git)
 img/                      Logo aplikasi
 laundry_1 (1).sql         Dump database terbaru
 laundry_1.sql             Dump lama (jangan dipakai)
@@ -82,6 +83,7 @@ mysql -uroot -D laundry_1 < database/migrations/003_login_attempt.sql
 mysql -uroot -D laundry_1 < database/migrations/004_laundry_status.sql
 mysql -uroot -D laundry_1 < database/migrations/005_order_code_unique.sql
 mysql -uroot -D laundry_1 < database/migrations/006_payment_method.sql
+mysql -uroot -D laundry_1 < database/migrations/007_receipt_setting.sql
 ```
 
 | Migrasi | Isi |
@@ -92,6 +94,7 @@ mysql -uroot -D laundry_1 < database/migrations/006_payment_method.sql
 | `004_laundry_status.sql` | Menambah kolom `laundry_status` untuk memisahkan status pembayaran dari tahap cucian |
 | `005_order_code_unique.sql` | Menambah indeks unik `order_code` agar kode order tidak bisa kembar |
 | `006_payment_method.sql` | Menambah kolom `payment_method` (`tunai`, `transfer`, `qris`) dan mengisi order lunas lama dengan `tunai` |
+| `007_receipt_setting.sql` | Menambah kolom `receipt_logo`, `receipt_footer`, dan `receipt_paper` untuk tampilan struk |
 
 Semua migrasi aman dijalankan berulang.
 
@@ -158,7 +161,7 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 ## Alur Pemakaian
 
 1. Login di `index.php`.
-2. Atur identitas toko di menu **Pengaturan** (nama, alamat, telepon, email). Data ini muncul di struk.
+2. Atur identitas toko dan tampilan struk di menu **Pengaturan** (nama, alamat, telepon, email, logo, footer, ukuran kertas 58/80 mm). Data ini muncul di struk.
 3. Tambahkan customer dan jenis service pada menu Master Data.
 4. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
 5. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
@@ -233,11 +236,13 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 | Tidak bisa login, pesan "Terlalu banyak percobaan login" | Terblokir 5 percobaan gagal | Tunggu 15 menit atau kosongkan tabel `login_attempt` |
 | Form ditolak dengan pesan "Sesi formulir tidak valid" | Token CSRF kedaluwarsa | Muat ulang halaman lalu kirim ulang |
 | Halaman dialihkan terus ke halaman awal | Halaman tidak diizinkan untuk level tersebut | Sesuaikan `id_level` user |
+| Logo struk gagal diunggah | Folder `assets/uploads` tidak bisa ditulis web server | Buat folder itu dan beri izin tulis untuk user web server |
 
 ## Keterbatasan
 
 - Status cucian belum mendukung pembatalan atau mundur satu tahap.
-- Pengaturan toko hanya menyimpan satu baris identitas; belum ada unggah logo.
+- Pengaturan toko hanya menyimpan satu baris identitas.
+- Logo struk hanya menerima PNG, JPEG, atau WebP maksimal 2 MB; tidak ada pemotongan atau pengaturan posisi logo.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar customer.
 - Laporan menampilkan seluruh baris pada periode terpilih tanpa pagination.
@@ -248,6 +253,9 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Struk bisa dicetak di kertas 58 mm atau 80 mm; ukuran dipilih di halaman **Pengaturan**.
+- Logo toko bisa diunggah (PNG/JPEG/WebP, maksimal 2 MB) dan tampil di bagian atas struk. Logo bisa diganti atau dihapus.
+- Footer struk bisa diubah; bila dikosongkan, struk memakai teks bawaan **Terima Kasih!!**.
 - Metode pembayaran **Tunai**, **Transfer**, atau **QRIS** dipilih saat membayar; tampil di detail order, struk, laporan, CSV, dan halaman cetak laporan.
 - Order lunas lama otomatis dianggap tunai lewat migrasi `006_payment_method.sql`.
 - Tombol aksi di daftar order memakai ikon WhatsApp, printer, dan tempat sampah, lengkap dengan tooltip dan label aksesibel.
