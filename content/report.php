@@ -157,13 +157,14 @@ $daftarCucian = [0 => 'Antrian', 1 => 'Dicuci', 2 => 'Siap Diambil', 3 => 'Sudah
                                     <th>Estimasi</th>
                                     <th class="text-end">Qty (kg)</th>
                                     <th class="text-end">Total</th>
+                                    <th>Metode</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (empty($rowOrder)): ?>
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted">Tidak ada order pada periode ini.</td>
+                                        <td colspan="9" class="text-center text-muted">Tidak ada order pada periode ini.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php $totalGram = 0; $totalRupiah = 0; ?>
@@ -185,6 +186,7 @@ $daftarCucian = [0 => 'Antrian', 1 => 'Dicuci', 2 => 'Siap Diambil', 3 => 'Sudah
                                             </td>
                                             <td class="text-end"><?php echo formatKg($order['gram']); ?></td>
                                             <td class="text-end"><?php echo rupiah($order['total']); ?></td>
+                                            <td><?php echo labelMetodeBayar($order['payment_method']); ?></td>
                                             <td>
                                                 <?php echo badgeStatusBayar($order['order_status']); ?>
                                                 <?php echo badgeStatusCucian($order['laundry_status']); ?>
@@ -195,6 +197,7 @@ $daftarCucian = [0 => 'Antrian', 1 => 'Dicuci', 2 => 'Siap Diambil', 3 => 'Sudah
                                         <td colspan="5" class="text-end"><strong>Total</strong></td>
                                         <td class="text-end"><strong><?php echo formatKg($totalGram); ?></strong></td>
                                         <td class="text-end"><strong><?php echo rupiah($totalRupiah); ?></strong></td>
+                                        <td></td>
                                         <td></td>
                                     </tr>
                                 <?php endif ?>

@@ -7,6 +7,7 @@ $daftarError = [
     'simpan'        => 'Order gagal disimpan. Silakan coba lagi.',
     'bayar'         => 'Nominal pembayaran tidak valid.',
     'kurang'        => 'Nominal pembayaran kurang dari total tagihan.',
+    'metode'        => 'Pilih metode pembayaran yang valid.',
     'sudah-bayar'   => 'Order ini sudah dibayar.',
     'status-cucian' => 'Perubahan status cucian tidak valid.',
     'belum-bayar'   => 'Lunasi order dulu sebelum menandai cucian sudah diambil.',
@@ -254,11 +255,14 @@ if (isset($_POST['save2'])) {
 
     $id_order      = $id_order_detail;
     $order_pay_raw = $_POST['order_pay'] ?? '';
+    $metode_bayar  = $_POST['payment_method'] ?? 'tunai';
     $total         = (int) $rowOrder['total'];
     $errorCode     = '';
 
     if ($rowOrder['order_status'] != 0) {
         $errorCode = 'sudah-bayar';
+    } elseif (!metodeBayarValid($metode_bayar)) {
+        $errorCode = 'metode';
     } elseif (!is_numeric($order_pay_raw)) {
         $errorCode = 'bayar';
     } else {
@@ -289,7 +293,7 @@ if (isset($_POST['save2'])) {
     }
 
     // Total memakai nilai dari database, bukan hidden input grand_total
-    $update = mysqli_query($config, "UPDATE trans_order SET order_status=1, order_pay='$order_pay', order_change='$order_change' WHERE id='$id_order' AND order_status=0");
+    $update = mysqli_query($config, "UPDATE trans_order SET order_status=1, payment_method='$metode_bayar', order_pay='$order_pay', order_change='$order_change' WHERE id='$id_order' AND order_status=0");
 
     if (!$update || mysqli_affected_rows($config) === 0) {
         mysqli_rollback($config);
@@ -363,6 +367,11 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                     <th>Status Cucian</th>
                                     <td>:</td>
                                     <td><?php echo badgeStatusCucian($rowOrder['laundry_status']); ?></td>
+                                </tr>
+                                <tr>
+                                    <th>Metode</th>
+                                    <td>:</td>
+                                    <td colspan="3"><?php echo labelMetodeBayar($rowOrder['payment_method']); ?></td>
                                 </tr>
                             </table>
                             <br><br>
@@ -533,6 +542,14 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                     <div class="mb-3">
                         <label for="total" class="form-label">Total</label>
                         <input readonly type="text" id="total" class="form-control" value="<?php echo $rowOrder['total']; ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Metode Pembayaran</label>
+                        <select name="payment_method" id="payment_method" class="form-select" required>
+                            <?php foreach (daftarMetodeBayar() as $kodeMetode => $labelMetode): ?>
+                                <option value="<?php echo htmlspecialchars($kodeMetode); ?>" <?php echo $kodeMetode === 'tunai' ? 'selected' : ''; ?>><?php echo htmlspecialchars($labelMetode); ?></option>
+                            <?php endforeach ?>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="pay" class="form-label">Pay</label>

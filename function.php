@@ -145,6 +145,28 @@ function badgeStatusCucian($status)
     return '<span class="badge ' . ($kelas[$status] ?? 'bg-secondary') . '">' . labelStatusCucian($status) . '</span>';
 }
 
+// Metode pembayaran: tunai, transfer, qris
+function daftarMetodeBayar()
+{
+    return [
+        'tunai'    => 'Tunai',
+        'transfer' => 'Transfer',
+        'qris'     => 'QRIS',
+    ];
+}
+
+function metodeBayarValid($metode)
+{
+    return is_string($metode) && array_key_exists($metode, daftarMetodeBayar());
+}
+
+function labelMetodeBayar($metode)
+{
+    $daftar = daftarMetodeBayar();
+
+    return is_string($metode) && isset($daftar[$metode]) ? $daftar[$metode] : '-';
+}
+
 // Format tanggal yang dipakai halaman detail dan struk
 function tanggal($date)
 {
@@ -347,6 +369,7 @@ function laporanOrder($config, $where)
             trans_order.total,
             trans_order.order_status,
             trans_order.laundry_status,
+            trans_order.payment_method,
             customer.customer_name,
             COALESCE((SELECT SUM(qty) FROM trans_order_detail WHERE id_order = trans_order.id), 0) AS gram
         FROM trans_order

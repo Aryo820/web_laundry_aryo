@@ -7,7 +7,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Login dengan tiga tingkat akses: Administrator, Operator, Leader.
 - Master data: customer, jenis service, level, dan user.
 - Pembuatan order dengan beberapa layanan sekaligus.
-- Pembayaran tunai beserta kembalian.
+- Pembayaran tunai, transfer, atau QRIS beserta kembalian.
 - Cetak struk.
 - Pengaturan toko (nama, alamat, telepon, email) yang dipakai pada struk.
 - Laporan transaksi per rentang tanggal: ringkasan order, pendapatan, piutang, total cucian, filter status, rekap per layanan, ekspor CSV, dan halaman cetak.
@@ -81,6 +81,7 @@ mysql -uroot -D laundry_1 < database/migrations/002_order_detail_price.sql
 mysql -uroot -D laundry_1 < database/migrations/003_login_attempt.sql
 mysql -uroot -D laundry_1 < database/migrations/004_laundry_status.sql
 mysql -uroot -D laundry_1 < database/migrations/005_order_code_unique.sql
+mysql -uroot -D laundry_1 < database/migrations/006_payment_method.sql
 ```
 
 | Migrasi | Isi |
@@ -90,6 +91,7 @@ mysql -uroot -D laundry_1 < database/migrations/005_order_code_unique.sql
 | `003_login_attempt.sql` | Membuat tabel `login_attempt` untuk pembatas percobaan login |
 | `004_laundry_status.sql` | Menambah kolom `laundry_status` untuk memisahkan status pembayaran dari tahap cucian |
 | `005_order_code_unique.sql` | Menambah indeks unik `order_code` agar kode order tidak bisa kembar |
+| `006_payment_method.sql` | Menambah kolom `payment_method` (`tunai`, `transfer`, `qris`) dan mengisi order lunas lama dengan `tunai` |
 
 Semua migrasi aman dijalankan berulang.
 
@@ -160,7 +162,7 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 3. Tambahkan customer dan jenis service pada menu Master Data.
 4. Buat order di menu Order → Tambah Order, pilih customer, layanan, dan qty.
 5. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
-6. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
+6. Buka detail order, pilih metode pembayaran (**Tunai**, **Transfer**, atau **QRIS**), isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
 7. Majukan status cucian dari halaman detail: **Dicuci** → **Siap Diambil** → **Sudah Diambil**. Tahap terakhir mencatat serah terima di `trans_laundry_pickup`.
 8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Gunakan filter **Status Bayar** dan **Status Cucian** untuk mempersempit daftar, lalu pindah halaman lewat navigasi di bawah tabel. **Reset** menghapus filter, sedangkan **Tampilkan semua** menghapus kata kunci pencarian.
 9. Kirim kabar ke customer lewat tombol **WA** di daftar order. WhatsApp terbuka dengan pesan status cucian, estimasi, dan total yang sudah terisi; tekan kirim di WhatsApp.
@@ -172,6 +174,7 @@ Catatan perhitungan:
 - Harga layanan disalin ke `trans_order_detail.price` saat order dibuat, sehingga perubahan harga tidak mengubah order lama.
 - Total order dihitung di server, bukan dari input browser.
 - Status dibagi dua: pembayaran `0` (Belum Bayar) / `1` (Lunas), dan tahap cucian `0` Antrian, `1` Dicuci, `2` Siap Diambil, `3` Sudah Diambil.
+- Metode pembayaran disimpan sebagai `tunai`, `transfer`, atau `qris`; order yang belum dibayar menyimpan `NULL`. Order lunas lama dianggap tunai.
 - Status cucian hanya bisa maju satu tahap, dan **Sudah Diambil** baru bisa dipilih setelah order lunas.
 
 ## Aturan Hapus Data
@@ -239,11 +242,14 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 - Belum ada pagination pada daftar customer.
 - Laporan menampilkan seluruh baris pada periode terpilih tanpa pagination.
 - Tombol WhatsApp hanya membuka chat dengan pesan terisi; pesan tetap dikirim manual dari aplikasi WhatsApp. Nomor diambil dari kolom `phone` customer, dan tombol tidak muncul bila nomor kosong atau tidak valid.
+- Metode pembayaran hanya dicatat untuk laporan; belum terhubung ke payment gateway atau verifikasi transfer/QRIS otomatis.
 - Migrasi dijalankan manual, belum ada runner otomatis.
 
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Metode pembayaran **Tunai**, **Transfer**, atau **QRIS** dipilih saat membayar; tampil di detail order, struk, laporan, CSV, dan halaman cetak laporan.
+- Order lunas lama otomatis dianggap tunai lewat migrasi `006_payment_method.sql`.
 - Tombol aksi di daftar order memakai ikon WhatsApp, printer, dan tempat sampah, lengkap dengan tooltip dan label aksesibel.
 - Tombol **WA** di daftar order membuka `wa.me` dengan pesan status cucian, estimasi selesai, total, dan status bayar yang sudah terisi.
 - Nomor WhatsApp dinormalisasi dari `08…`, `8…`, atau `+62…` menjadi `62…`; nomor kosong atau tidak valid tidak menampilkan tombol.

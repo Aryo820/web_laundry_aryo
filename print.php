@@ -42,6 +42,7 @@ $query = mysqli_query($config, "
         trans_order.order_date,
         trans_order.order_end_date,
         trans_order.order_status,
+        trans_order.payment_method,
         trans_order.order_pay,
         trans_order.order_change,
         trans_order.total,
@@ -197,6 +198,10 @@ if ($id_level > 0) {
                 <span>Rp. <?php echo (float) $order['total']; ?></span>
             </div>
             <?php if ($order['order_status'] == 1) { ?>
+                <div class="row">
+                    <span>Metode</span>
+                    <span><?php echo htmlspecialchars(labelMetodeBayar($order['payment_method'])); ?></span>
+                </div>
                 <div class="row">
                     <span>Pay</span>
                     <span>Rp. <?php echo (float) $order['order_pay']; ?></span>

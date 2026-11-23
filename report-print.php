@@ -208,13 +208,14 @@ $tautanKembali = 'home.php?page=report&' . queryLaporan($filter);
                 <th>Estimasi</th>
                 <th class="angka">Qty (kg)</th>
                 <th class="angka">Total</th>
+                <th>Metode</th>
                 <th>Status</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($rowOrder)): ?>
                 <tr>
-                    <td colspan="8" style="text-align: center;">Tidak ada order pada periode ini.</td>
+                    <td colspan="9" style="text-align: center;">Tidak ada order pada periode ini.</td>
                 </tr>
             <?php else: ?>
                 <?php $totalGram = 0; $totalRupiah = 0; ?>
@@ -231,6 +232,7 @@ $tautanKembali = 'home.php?page=report&' . queryLaporan($filter);
                         <td><?php echo formatTanggalSingkat($order['order_end_date']); ?></td>
                         <td class="angka"><?php echo formatKg($order['gram']); ?></td>
                         <td class="angka"><?php echo rupiah($order['total']); ?></td>
+                        <td><?php echo labelMetodeBayar($order['payment_method']); ?></td>
                         <td><?php echo labelStatusBayar($order['order_status']); ?> / <?php echo labelStatusCucian($order['laundry_status']); ?></td>
                     </tr>
                 <?php endforeach ?>
@@ -242,6 +244,7 @@ $tautanKembali = 'home.php?page=report&' . queryLaporan($filter);
                     <td colspan="5" class="angka">Total</td>
                     <td class="angka"><?php echo formatKg($totalGram); ?></td>
                     <td class="angka"><?php echo rupiah($totalRupiah); ?></td>
+                    <td></td>
                     <td></td>
                 </tr>
             </tfoot>

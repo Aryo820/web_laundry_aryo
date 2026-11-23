@@ -52,7 +52,7 @@ fwrite($keluaran, "\xEF\xBB\xBF");
 fputcsv($keluaran, ['Laporan Transaksi ' . $namaToko]);
 fputcsv($keluaran, ['Periode', keteranganLaporan($filter)]);
 fputcsv($keluaran, []);
-fputcsv($keluaran, ['No', 'Kode Order', 'Tanggal', 'Customer', 'Estimasi Selesai', 'Qty (kg)', 'Total (Rp)', 'Status Bayar', 'Status Cucian']);
+fputcsv($keluaran, ['No', 'Kode Order', 'Tanggal', 'Customer', 'Estimasi Selesai', 'Qty (kg)', 'Total (Rp)', 'Metode Bayar', 'Status Bayar', 'Status Cucian']);
 
 $totalGram   = 0;
 $totalRupiah = 0;
@@ -69,15 +69,16 @@ foreach ($rowOrder as $index => $order) {
         csvAman(formatTanggalSingkat($order['order_end_date'])),
         formatKg($order['gram']),
         (int) $order['total'],
+        csvAman(labelMetodeBayar($order['payment_method'])),
         csvAman(labelStatusBayar($order['order_status'])),
         csvAman(labelStatusCucian($order['laundry_status'])),
     ]);
 }
 
 fputcsv($keluaran, []);
-fputcsv($keluaran, ['', 'TOTAL', '', '', '', formatKg($totalGram), (int) $totalRupiah, '', '']);
-fputcsv($keluaran, ['', 'Pendapatan lunas', '', '', '', '', (int) $ringkasan['pendapatan'], '', '']);
-fputcsv($keluaran, ['', 'Belum dibayar', '', '', '', '', (int) $ringkasan['piutang'], '', '']);
+fputcsv($keluaran, ['', 'TOTAL', '', '', '', formatKg($totalGram), (int) $totalRupiah, '', '', '']);
+fputcsv($keluaran, ['', 'Pendapatan lunas', '', '', '', '', (int) $ringkasan['pendapatan'], '', '', '']);
+fputcsv($keluaran, ['', 'Belum dibayar', '', '', '', '', (int) $ringkasan['piutang'], '', '', '']);
 
 fclose($keluaran);
 exit;
