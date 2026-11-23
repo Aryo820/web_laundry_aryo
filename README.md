@@ -78,6 +78,7 @@ mysql -uroot -D laundry_1 < database/migrations/001_deleted_at.sql
 mysql -uroot -D laundry_1 < database/migrations/002_order_detail_price.sql
 mysql -uroot -D laundry_1 < database/migrations/003_login_attempt.sql
 mysql -uroot -D laundry_1 < database/migrations/004_laundry_status.sql
+mysql -uroot -D laundry_1 < database/migrations/005_order_code_unique.sql
 ```
 
 | Migrasi | Isi |
@@ -86,6 +87,7 @@ mysql -uroot -D laundry_1 < database/migrations/004_laundry_status.sql
 | `002_order_detail_price.sql` | Menambah kolom `price` (snapshot harga) dan memperbaiki subtotal lama |
 | `003_login_attempt.sql` | Membuat tabel `login_attempt` untuk pembatas percobaan login |
 | `004_laundry_status.sql` | Menambah kolom `laundry_status` untuk memisahkan status pembayaran dari tahap cucian |
+| `005_order_code_unique.sql` | Menambah indeks unik `order_code` agar kode order tidak bisa kembar |
 
 Semua migrasi aman dijalankan berulang.
 
@@ -238,6 +240,8 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Kode order dibuat dari id hasil insert, bukan prediksi `MAX(id)+1`, sehingga dua kasir yang menyimpan order bersamaan tidak menghasilkan kode kembar.
+- Indeks unik pada `order_code` menjaga kode order tetap unik di level database.
 - Laporan memakai filter `GET`: rentang tanggal, status bayar, dan status cucian, sehingga tautan laporan bisa dibagikan.
 - Ringkasan laporan: jumlah order, pendapatan lunas, piutang, dan total cucian.
 - Rekap qty dan subtotal per jenis layanan.

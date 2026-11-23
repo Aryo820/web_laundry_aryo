@@ -178,6 +178,25 @@ function tanggalValid($value)
     return $d && $d->format('Y-m-d') === $value;
 }
 
+// Kode order: TR-ddmmyy-NNN.
+// Saat menyimpan, kirim id hasil insert supaya kode tidak bentrok ketika
+// dua kasir membuat order bersamaan. Tanpa id, hasilnya hanya perkiraan
+// untuk ditampilkan di form.
+function generateOrderCode($config, $idOrder = null, $orderDate = null)
+{
+    if ($idOrder !== null) {
+        $idTrans = (int) $idOrder;
+    } else {
+        $query = mysqli_query($config, "SELECT MAX(id) AS id_trans FROM trans_order");
+        $row   = $query ? mysqli_fetch_assoc($query) : null;
+        $idTrans = ((int) ($row['id_trans'] ?? 0)) + 1;
+    }
+
+    $tanggal = tanggalValid($orderDate) ? $orderDate : date('Y-m-d');
+
+    return 'TR-' . date('dmy', strtotime($tanggal)) . '-' . sprintf('%03d', $idTrans);
+}
+
 // Format rupiah untuk ringkasan dan tabel laporan
 function rupiah($angka)
 {

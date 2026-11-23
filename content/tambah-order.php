@@ -1,14 +1,4 @@
 <?php
-// Membuat kode order berikutnya: TR-ddmmyy-NNN
-function generateOrderCode($config)
-{
-    $queryNoTrans = mysqli_query($config, "SELECT MAX(id) AS id_trans FROM trans_order");
-    $rowNoTrans = $queryNoTrans ? mysqli_fetch_assoc($queryNoTrans) : null;
-    $id_trans = ((int) ($rowNoTrans['id_trans'] ?? 0)) + 1;
-
-    return "TR-" . date("dmy") . "-" . sprintf("%03d", $id_trans);
-}
-
 $daftarError = [
     'customer'      => 'Pilih customer terlebih dahulu.',
     'service'       => 'Tambahkan minimal satu layanan yang valid.',
@@ -197,12 +187,15 @@ if (isset($_POST['save'])) {
     }
 
     // Total dihitung ulang di server; grand_total dari form tidak dipakai
-    $order_code = generateOrderCode($config);
     $total = (int) round($grandTotal);
+
+    // Kolom order_code NOT NULL, jadi diisi kode sementara dulu.
+    // Kode final baru dibuat setelah id hasil insert diketahui.
+    $kodeSementara = 'TR-PENDING-' . bin2hex(random_bytes(4));
 
     mysqli_begin_transaction($config);
 
-    $insertOrder = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, laundry_status, order_date, order_end_date, total, order_pay, order_change) VALUES ('$id_customer', '$order_code', 0, 0, '$order_date', '$order_end_date', '$total', 0, 0)");
+    $insertOrder = mysqli_query($config, "INSERT INTO trans_order (id_customer, order_code, order_status, laundry_status, order_date, order_end_date, total, order_pay, order_change) VALUES ('$id_customer', '$kodeSementara', 0, 0, '$order_date', '$order_end_date', '$total', 0, 0)");
 
     if (!$insertOrder) {
         mysqli_rollback($config);
@@ -211,6 +204,18 @@ if (isset($_POST['save'])) {
     }
 
     $id_order = mysqli_insert_id($config);
+
+    // Kode final memakai id asli, bukan prediksi MAX(id)+1
+    $order_code    = generateOrderCode($config, $id_order, $order_date);
+    $orderCodeSafe = mysqli_real_escape_string($config, $order_code);
+    $updateCode    = mysqli_query($config, "UPDATE trans_order SET order_code='$orderCodeSafe' WHERE id='$id_order'");
+
+    if (!$updateCode) {
+        mysqli_rollback($config);
+        header("location:?page=tambah-order&gagal=simpan");
+        exit;
+    }
+
     $detailTersimpan = true;
 
     foreach ($detailRows as $detail) {
