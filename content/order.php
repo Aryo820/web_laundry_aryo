@@ -167,16 +167,16 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                             <?php echo badgeStatusBayar($order['order_status']); ?>
                                             <?php echo badgeStatusCucian($order['laundry_status']); ?>
                                         </td>
-                                        <td>
+                                        <td class="text-nowrap">
                                             <?php if ($waLink !== ''): ?>
-                                                <a href="<?php echo htmlspecialchars($waLink, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-success">WA</a>
+                                                <a href="<?php echo htmlspecialchars($waLink, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-success" title="Kirim WhatsApp" aria-label="Kirim WhatsApp"><i class="bi bi-whatsapp" aria-hidden="true"></i></a>
                                             <?php endif ?>
-                                            <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning">Print</a>
+                                            <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning" title="Cetak struk" aria-label="Cetak struk"><i class="bi bi-printer" aria-hidden="true"></i></a>
                                             <?php if (!$isLunas): ?>
                                                 <form action="?<?php echo htmlspecialchars(queryOrder($filter), ENT_QUOTES, 'UTF-8'); ?>" method="post" class="d-inline" onsubmit="return confirm('Hapus order ini?');">
                                                     <?php echo csrfField(); ?>
                                                     <input type="hidden" name="delete_order" value="<?php echo (int) $order['id']; ?>">
-                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                    <button type="submit" class="btn btn-danger" title="Hapus order" aria-label="Hapus order"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                                 </form>
                                             <?php endif ?>
                                         </td>

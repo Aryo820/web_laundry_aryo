@@ -244,6 +244,7 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Tombol aksi di daftar order memakai ikon WhatsApp, printer, dan tempat sampah, lengkap dengan tooltip dan label aksesibel.
 - Tombol **WA** di daftar order membuka `wa.me` dengan pesan status cucian, estimasi selesai, total, dan status bayar yang sudah terisi.
 - Nomor WhatsApp dinormalisasi dari `08…`, `8…`, atau `+62…` menjadi `62…`; nomor kosong atau tidak valid tidak menampilkan tombol.
 - Daftar order memakai filter `GET` status bayar dan status cucian, sehingga tautan hasil filter bisa dibagikan.
