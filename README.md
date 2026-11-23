@@ -12,6 +12,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Pengaturan toko (nama, alamat, telepon, email) yang dipakai pada struk.
 - Laporan transaksi per rentang tanggal: ringkasan order, pendapatan, piutang, total cucian, filter status, rekap per layanan, ekspor CSV, dan halaman cetak.
 - Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
+- Daftar order dengan filter status bayar dan status cucian, serta pagination 10 order per halaman.
 - Dashboard ringkasan: order bulan ini, pendapatan, customer aktif, service aktif, order belum dibayar, dan lima order terbaru.
 
 ## Kebutuhan
@@ -160,7 +161,7 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 5. Simpan order. Order baru selalu berstatus **Belum Bayar** dan **Antrian**.
 6. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
 7. Majukan status cucian dari halaman detail: **Dicuci** → **Siap Diambil** → **Sudah Diambil**. Tahap terakhir mencatat serah terima di `trans_laundry_pickup`.
-8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
+8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Gunakan filter **Status Bayar** dan **Status Cucian** untuk mempersempit daftar, lalu pindah halaman lewat navigasi di bawah tabel. **Reset** menghapus filter, sedangkan **Tampilkan semua** menghapus kata kunci pencarian.
 9. Pantau transaksi lewat menu Report: pilih rentang tanggal dan status, lihat ringkasan, lalu **Export CSV** atau **Cetak**.
 
 Catatan perhitungan:
@@ -233,13 +234,16 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 - Status cucian belum mendukung pembatalan atau mundur satu tahap.
 - Pengaturan toko hanya menyimpan satu baris identitas; belum ada unggah logo.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
-- Belum ada pagination pada daftar order dan customer.
+- Belum ada pagination pada daftar customer.
 - Laporan menampilkan seluruh baris pada periode terpilih tanpa pagination.
 - Migrasi dijalankan manual, belum ada runner otomatis.
 
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Daftar order memakai filter `GET` status bayar dan status cucian, sehingga tautan hasil filter bisa dibagikan.
+- Daftar order dibagi 10 baris per halaman; nomor halaman dan kata kunci pencarian tetap terbawa saat berpindah halaman.
+- Hapus order dari halaman yang sedang difilter kembali ke daftar dengan filter yang sama.
 - Kode order dibuat dari id hasil insert, bukan prediksi `MAX(id)+1`, sehingga dua kasir yang menyimpan order bersamaan tidak menghasilkan kode kembar.
 - Indeks unik pada `order_code` menjaga kode order tetap unik di level database.
 - Laporan memakai filter `GET`: rentang tanggal, status bayar, dan status cucian, sehingga tautan laporan bisa dibagikan.

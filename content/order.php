@@ -5,10 +5,12 @@ $pesanGagal = [
     'csrf'            => 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.',
 ];
 
+$filter = filterOrder($_GET);
+
 // Hapus order memakai POST supaya tidak terpicu oleh link/prefetch.
 if (isset($_POST['delete_order'])) {
     if (!csrfValid()) {
-        header('location:?page=order&gagal=csrf');
+        header('location:?' . queryOrder($filter) . '&gagal=csrf');
         exit;
     }
 
@@ -27,35 +29,35 @@ if (isset($_POST['delete_order'])) {
                 $delete = mysqli_query($config, "UPDATE trans_order SET deleted_at='$now' WHERE id='$id_order' AND deleted_at IS NULL");
 
                 if ($delete && mysqli_affected_rows($config) > 0) {
-                    header('location:?page=order&hapus=berhasil');
+                    header('location:?' . queryOrder($filter) . '&hapus=berhasil');
                     exit;
                 }
             }
         }
     }
 
-    header('location:?page=order&gagal=' . $gagalCode);
+    header('location:?' . queryOrder($filter) . '&gagal=' . $gagalCode);
     exit;
 }
 
-// Pencarian dari header: kode order, nama customer, atau nomor telepon
-$cari = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
-$cari = mb_substr($cari, 0, 50);
+$where = orderWhere($config, $filter);
 
-$kondisiCari = '';
-if ($cari !== '') {
-    // Escape wildcard agar '%' dan '_' dicari sebagai karakter biasa
-    $cariLike = addcslashes($cari, '%_');
-    $cariSafe = mysqli_real_escape_string($config, $cariLike);
-    $kondisiCari = " AND (trans_order.order_code LIKE '%$cariSafe%' OR customer.customer_name LIKE '%$cariSafe%' OR customer.phone LIKE '%$cariSafe%')";
-}
+$queryTotal = mysqli_query($config, "SELECT COUNT(*) AS total FROM trans_order LEFT JOIN customer ON trans_order.id_customer = customer.id WHERE $where");
+$totalOrder = $queryTotal ? (int) (mysqli_fetch_assoc($queryTotal)['total'] ?? 0) : 0;
+
+$perHalaman    = 10;
+$info          = infoHalaman($totalOrder, $perHalaman, $filter['hal']);
+$filter['hal'] = $info['hal'];
 
 $queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_end_date, trans_order.order_status, trans_order.laundry_status, customer.customer_name
 FROM trans_order
 LEFT JOIN customer ON trans_order.id_customer = customer.id
-WHERE trans_order.deleted_at IS NULL$kondisiCari
-ORDER BY trans_order.id DESC");
+WHERE $where
+ORDER BY trans_order.id DESC
+LIMIT {$info['offset']}, $perHalaman");
 $rowOrder = $queryOrder ? mysqli_fetch_all($queryOrder, MYSQLI_ASSOC) : [];
+
+$cari = $filter['q'];
 
 $hapus = is_string($_GET['hapus'] ?? null) ? $_GET['hapus'] : '';
 $gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
@@ -78,14 +80,49 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                     <?php if ($cari !== ''): ?>
                         <div class="alert alert-info">
                             Hasil pencarian untuk <strong><?php echo htmlspecialchars($cari, ENT_QUOTES, 'UTF-8'); ?></strong>:
-                            <?php echo count($rowOrder); ?> order.
+                            <?php echo $info['total']; ?> order.
                             <a href="?page=order" class="alert-link">Tampilkan semua</a>
                         </div>
                     <?php endif ?>
-                    <div class="table-responsive">
-                        <div class="mb-3" align="right">
-                            <a href="?page=tambah-order" class="btn btn-primary">Add Order</a>
+                    <div class="mb-3" align="right">
+                        <a href="?page=tambah-order" class="btn btn-primary">Add Order</a>
+                    </div>
+                    <form method="GET" action="home.php" class="row g-2 align-items-end mb-3">
+                        <input type="hidden" name="page" value="order">
+                        <?php if ($cari !== ''): ?>
+                            <input type="hidden" name="q" value="<?php echo htmlspecialchars($cari, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php endif ?>
+                        <div class="col-12 col-md-4">
+                            <label for="filter-status" class="form-label">Status Bayar</label>
+                            <select name="status" id="filter-status" class="form-select">
+                                <option value="">Semua</option>
+                                <option value="0" <?php echo $filter['status'] === '0' ? 'selected' : ''; ?>>Belum Bayar</option>
+                                <option value="1" <?php echo $filter['status'] === '1' ? 'selected' : ''; ?>>Lunas</option>
+                            </select>
                         </div>
+                        <div class="col-12 col-md-4">
+                            <label for="filter-cucian" class="form-label">Status Cucian</label>
+                            <select name="cucian" id="filter-cucian" class="form-select">
+                                <option value="">Semua</option>
+                                <?php foreach ([0, 1, 2, 3] as $kodeCucian): ?>
+                                    <option value="<?php echo $kodeCucian; ?>" <?php echo $filter['cucian'] === (string) $kodeCucian ? 'selected' : ''; ?>>
+                                        <?php echo labelStatusCucian($kodeCucian); ?>
+                                    </option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <button type="submit" class="btn btn-primary">Terapkan</button>
+                            <a href="?page=order" class="btn btn-secondary">Reset</a>
+                        </div>
+                    </form>
+                    <?php if ($info['total'] > 0): ?>
+                        <p class="text-muted mb-2">
+                            Menampilkan <?php echo $info['dari']; ?>&ndash;<?php echo $info['sampai']; ?>
+                            dari <?php echo $info['total']; ?> order.
+                        </p>
+                    <?php endif ?>
+                    <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -101,7 +138,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                 <?php if (empty($rowOrder)): ?>
                                     <tr>
                                         <td colspan="6" class="text-center text-muted">
-                                            <?php echo $cari !== '' ? 'Tidak ada order yang cocok.' : 'Belum ada order.'; ?>
+                                            <?php echo $cari !== '' || $filter['status'] !== '' || $filter['cucian'] !== '' ? 'Tidak ada order yang cocok dengan filter.' : 'Belum ada order.'; ?>
                                         </td>
                                     </tr>
                                 <?php endif ?>
@@ -124,7 +161,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                         <td>
                                             <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning">Print</a>
                                             <?php if (!$isLunas): ?>
-                                                <form action="?page=order" method="post" class="d-inline" onsubmit="return confirm('Hapus order ini?');">
+                                                <form action="?<?php echo htmlspecialchars(queryOrder($filter), ENT_QUOTES, 'UTF-8'); ?>" method="post" class="d-inline" onsubmit="return confirm('Hapus order ini?');">
                                                     <?php echo csrfField(); ?>
                                                     <input type="hidden" name="delete_order" value="<?php echo (int) $order['id']; ?>">
                                                     <button type="submit" class="btn btn-danger">Delete</button>
@@ -136,6 +173,35 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                             </tbody>
                         </table>
                     </div>
+                    <?php if ($info['total_halaman'] > 1): ?>
+                        <nav aria-label="Navigasi halaman order" class="mt-3">
+                            <ul class="pagination justify-content-end mb-0">
+                                <li class="page-item <?php echo $info['hal'] <= 1 ? 'disabled' : ''; ?>">
+                                    <?php if ($info['hal'] > 1): ?>
+                                        <a class="page-link" href="?<?php echo htmlspecialchars(queryOrder($filter, $info['hal'] - 1), ENT_QUOTES, 'UTF-8'); ?>">Previous</a>
+                                    <?php else: ?>
+                                        <span class="page-link">Previous</span>
+                                    <?php endif ?>
+                                </li>
+                                <?php foreach (daftarHalaman($info['hal'], $info['total_halaman']) as $nomor): ?>
+                                    <li class="page-item <?php echo $nomor === $info['hal'] ? 'active' : ''; ?>">
+                                        <?php if ($nomor === $info['hal']): ?>
+                                            <span class="page-link"><?php echo $nomor; ?></span>
+                                        <?php else: ?>
+                                            <a class="page-link" href="?<?php echo htmlspecialchars(queryOrder($filter, $nomor), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $nomor; ?></a>
+                                        <?php endif ?>
+                                    </li>
+                                <?php endforeach ?>
+                                <li class="page-item <?php echo $info['hal'] >= $info['total_halaman'] ? 'disabled' : ''; ?>">
+                                    <?php if ($info['hal'] < $info['total_halaman']): ?>
+                                        <a class="page-link" href="?<?php echo htmlspecialchars(queryOrder($filter, $info['hal'] + 1), ENT_QUOTES, 'UTF-8'); ?>">Next</a>
+                                    <?php else: ?>
+                                        <span class="page-link">Next</span>
+                                    <?php endif ?>
+                                </li>
+                            </ul>
+                        </nav>
+                    <?php endif ?>
                 </div>
             </div>
         </div>

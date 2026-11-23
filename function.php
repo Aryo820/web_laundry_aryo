@@ -400,3 +400,117 @@ function cucianLewatTenggat($endDate, $laundryStatus)
 
     return $waktu < strtotime(date('Y-m-d'));
 }
+
+// Filter daftar order dari query string.
+// Memakai `hal`, bukan `page`, karena `page` sudah dipakai router halaman.
+function filterOrder(?array $sumber = null)
+{
+    $sumber = $sumber ?? $_GET;
+
+    $q = is_string($sumber['q'] ?? null) ? trim($sumber['q']) : '';
+    $q = mb_substr($q, 0, 50);
+
+    $status = is_string($sumber['status'] ?? null) ? $sumber['status'] : '';
+    if (!in_array($status, ['0', '1'], true)) {
+        $status = '';
+    }
+
+    $cucian = is_string($sumber['cucian'] ?? null) ? $sumber['cucian'] : '';
+    if (!in_array($cucian, ['0', '1', '2', '3'], true)) {
+        $cucian = '';
+    }
+
+    $hal = filter_var($sumber['hal'] ?? 1, FILTER_VALIDATE_INT);
+    if ($hal === false || $hal < 1) {
+        $hal = 1;
+    }
+
+    return [
+        'q'      => $q,
+        'status' => $status,
+        'cucian' => $cucian,
+        'hal'    => $hal,
+    ];
+}
+
+// WHERE daftar order; dipakai query hitung dan query data supaya hasilnya sama
+function orderWhere($config, array $filter)
+{
+    $where = 'trans_order.deleted_at IS NULL';
+
+    if ($filter['q'] !== '') {
+        // Escape wildcard agar '%' dan '_' dicari sebagai karakter biasa
+        $cariLike = addcslashes($filter['q'], '%_');
+        $cariSafe = mysqli_real_escape_string($config, $cariLike);
+        $where .= " AND (trans_order.order_code LIKE '%$cariSafe%' OR customer.customer_name LIKE '%$cariSafe%' OR customer.phone LIKE '%$cariSafe%')";
+    }
+
+    if ($filter['status'] !== '') {
+        $where .= ' AND trans_order.order_status = ' . (int) $filter['status'];
+    }
+
+    if ($filter['cucian'] !== '') {
+        $where .= ' AND trans_order.laundry_status = ' . (int) $filter['cucian'];
+    }
+
+    return $where;
+}
+
+// Query string daftar order untuk tautan filter dan pagination.
+// Halaman 1 tidak ditulis supaya URL-nya tetap pendek.
+function queryOrder(array $filter, ?int $hal = null)
+{
+    $data = ['page' => 'order'];
+
+    if ($filter['q'] !== '') {
+        $data['q'] = $filter['q'];
+    }
+
+    if ($filter['status'] !== '') {
+        $data['status'] = $filter['status'];
+    }
+
+    if ($filter['cucian'] !== '') {
+        $data['cucian'] = $filter['cucian'];
+    }
+
+    $hal = $hal ?? $filter['hal'];
+    if ($hal > 1) {
+        $data['hal'] = $hal;
+    }
+
+    return http_build_query($data);
+}
+
+// Hitung jumlah halaman, offset, dan rentang baris yang sedang tampil
+function infoHalaman($total, $perPage, $hal)
+{
+    $total        = max(0, (int) $total);
+    $perPage      = max(1, (int) $perPage);
+    $totalHalaman = max(1, (int) ceil($total / $perPage));
+    $hal          = min(max(1, (int) $hal), $totalHalaman);
+    $offset       = ($hal - 1) * $perPage;
+
+    return [
+        'total'         => $total,
+        'per_page'      => $perPage,
+        'total_halaman' => $totalHalaman,
+        'hal'           => $hal,
+        'offset'        => $offset,
+        'dari'          => $total === 0 ? 0 : $offset + 1,
+        'sampai'        => min($offset + $perPage, $total),
+    ];
+}
+
+// Nomor halaman yang ditampilkan: maksimal lima di sekitar halaman aktif
+function daftarHalaman($hal, $totalHalaman)
+{
+    $totalHalaman = max(1, (int) $totalHalaman);
+    $hal          = min(max(1, (int) $hal), $totalHalaman);
+
+    $mulai = max(1, $hal - 2);
+    $akhir = min($totalHalaman, $mulai + 4);
+    $mulai = max(1, $akhir - 4);
+
+    return range($mulai, $akhir);
+}
