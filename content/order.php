@@ -49,13 +49,17 @@ $perHalaman    = 10;
 $info          = infoHalaman($totalOrder, $perHalaman, $filter['hal']);
 $filter['hal'] = $info['hal'];
 
-$queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_end_date, trans_order.order_status, trans_order.laundry_status, customer.customer_name
+$queryOrder = mysqli_query($config, "SELECT trans_order.id, trans_order.order_code, trans_order.order_date, trans_order.order_end_date, trans_order.order_status, trans_order.laundry_status, trans_order.total, customer.customer_name, customer.phone
 FROM trans_order
 LEFT JOIN customer ON trans_order.id_customer = customer.id
 WHERE $where
 ORDER BY trans_order.id DESC
 LIMIT {$info['offset']}, $perHalaman");
 $rowOrder = $queryOrder ? mysqli_fetch_all($queryOrder, MYSQLI_ASSOC) : [];
+
+$querySetting = mysqli_query($config, "SELECT name FROM setting ORDER BY id ASC LIMIT 1");
+$setting      = $querySetting ? mysqli_fetch_assoc($querySetting) : null;
+$namaToko     = $setting['name'] ?? 'Laundry';
 
 $cari = $filter['q'];
 
@@ -128,6 +132,7 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                 <tr>
                                     <th>Code</th>
                                     <th>Name</th>
+                                    <th>No. WA</th>
                                     <th>Tanggal</th>
                                     <th>Estimasi</th>
                                     <th>Status</th>
@@ -137,18 +142,22 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                             <tbody>
                                 <?php if (empty($rowOrder)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted">
+                                        <td colspan="7" class="text-center text-muted">
                                             <?php echo $cari !== '' || $filter['status'] !== '' || $filter['cucian'] !== '' ? 'Tidak ada order yang cocok dengan filter.' : 'Belum ada order.'; ?>
                                         </td>
                                     </tr>
                                 <?php endif ?>
                                 <?php foreach ($rowOrder as $order): ?>
-                                    <?php $isLunas = (int) $order['order_status'] === 1; ?>
+                                    <?php
+                                    $isLunas = (int) $order['order_status'] === 1;
+                                    $waLink  = linkWa($order['phone'] ?? '', pesanWaOrder($order, $namaToko));
+                                    ?>
                                     <tr>
-                                        <td><a href="?page=tambah-order&detail=<?php echo (int) $order['id']; ?>"><?php echo htmlspecialchars($order['order_code'], ENT_QUOTES, 'UTF-8'); ?></a></td>
+                                        <td class="text-nowrap"><a href="?page=tambah-order&detail=<?php echo (int) $order['id']; ?>"><?php echo htmlspecialchars($order['order_code'], ENT_QUOTES, 'UTF-8'); ?></a></td>
                                         <td><?php echo htmlspecialchars($order['customer_name'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars($order['order_date'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td>
+                                        <td class="text-nowrap"><?php echo htmlspecialchars(($order['phone'] ?? '') !== '' ? $order['phone'] : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td class="text-nowrap"><?php echo htmlspecialchars($order['order_date'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td class="text-nowrap">
                                             <?php echo formatTanggalSingkat($order['order_end_date']); ?>
                                             <?php if (cucianLewatTenggat($order['order_end_date'], $order['laundry_status'])): ?>
                                                 <span class="badge bg-danger">Lewat</span>
@@ -159,6 +168,9 @@ $notifGagal  = $pesanGagal[$gagal] ?? '';
                                             <?php echo badgeStatusCucian($order['laundry_status']); ?>
                                         </td>
                                         <td>
+                                            <?php if ($waLink !== ''): ?>
+                                                <a href="<?php echo htmlspecialchars($waLink, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-success">WA</a>
+                                            <?php endif ?>
                                             <a href="print.php?id=<?php echo (int) $order['id']; ?>" class="btn btn-warning">Print</a>
                                             <?php if (!$isLunas): ?>
                                                 <form action="?<?php echo htmlspecialchars(queryOrder($filter), ENT_QUOTES, 'UTF-8'); ?>" method="post" class="d-inline" onsubmit="return confirm('Hapus order ini?');">

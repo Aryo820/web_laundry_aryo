@@ -13,6 +13,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Laporan transaksi per rentang tanggal: ringkasan order, pendapatan, piutang, total cucian, filter status, rekap per layanan, ekspor CSV, dan halaman cetak.
 - Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
 - Daftar order dengan filter status bayar dan status cucian, serta pagination 10 order per halaman.
+- Tombol WhatsApp di daftar order: membuka chat customer dengan pesan status cucian, estimasi, dan total yang sudah terisi.
 - Dashboard ringkasan: order bulan ini, pendapatan, customer aktif, service aktif, order belum dibayar, dan lima order terbaru.
 
 ## Kebutuhan
@@ -162,7 +163,8 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 6. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
 7. Majukan status cucian dari halaman detail: **Dicuci** → **Siap Diambil** → **Sudah Diambil**. Tahap terakhir mencatat serah terima di `trans_laundry_pickup`.
 8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Gunakan filter **Status Bayar** dan **Status Cucian** untuk mempersempit daftar, lalu pindah halaman lewat navigasi di bawah tabel. **Reset** menghapus filter, sedangkan **Tampilkan semua** menghapus kata kunci pencarian.
-9. Pantau transaksi lewat menu Report: pilih rentang tanggal dan status, lihat ringkasan, lalu **Export CSV** atau **Cetak**.
+9. Kirim kabar ke customer lewat tombol **WA** di daftar order. WhatsApp terbuka dengan pesan status cucian, estimasi, dan total yang sudah terisi; tekan kirim di WhatsApp.
+10. Pantau transaksi lewat menu Report: pilih rentang tanggal dan status, lihat ringkasan, lalu **Export CSV** atau **Cetak**.
 
 Catatan perhitungan:
 
@@ -236,11 +238,14 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar customer.
 - Laporan menampilkan seluruh baris pada periode terpilih tanpa pagination.
+- Tombol WhatsApp hanya membuka chat dengan pesan terisi; pesan tetap dikirim manual dari aplikasi WhatsApp. Nomor diambil dari kolom `phone` customer, dan tombol tidak muncul bila nomor kosong atau tidak valid.
 - Migrasi dijalankan manual, belum ada runner otomatis.
 
 ## Riwayat Versi
 
 ### v1.2.0 (dalam pengerjaan)
+- Tombol **WA** di daftar order membuka `wa.me` dengan pesan status cucian, estimasi selesai, total, dan status bayar yang sudah terisi.
+- Nomor WhatsApp dinormalisasi dari `08…`, `8…`, atau `+62…` menjadi `62…`; nomor kosong atau tidak valid tidak menampilkan tombol.
 - Daftar order memakai filter `GET` status bayar dan status cucian, sehingga tautan hasil filter bisa dibagikan.
 - Daftar order dibagi 10 baris per halaman; nomor halaman dan kata kunci pencarian tetap terbawa saat berpindah halaman.
 - Hapus order dari halaman yang sedang difilter kembali ke daftar dengan filter yang sama.

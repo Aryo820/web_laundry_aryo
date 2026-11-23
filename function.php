@@ -514,3 +514,69 @@ function daftarHalaman($hal, $totalHalaman)
 
     return range($mulai, $akhir);
 }
+
+// Nomor WhatsApp: hanya angka dan diawali 62.
+// Menerima 08..., 8..., +62..., atau 62...
+function nomorWa($phone)
+{
+    $angka = preg_replace('/\D+/', '', (string) $phone);
+
+    if ($angka === '') {
+        return '';
+    }
+
+    if (str_starts_with($angka, '0')) {
+        $angka = '62' . substr($angka, 1);
+    } elseif (str_starts_with($angka, '8')) {
+        $angka = '62' . $angka;
+    }
+
+    if (!str_starts_with($angka, '62') || strlen($angka) < 10 || strlen($angka) > 15) {
+        return '';
+    }
+
+    return $angka;
+}
+
+// Isi pesan WhatsApp untuk satu order
+function pesanWaOrder(array $order, $namaToko = 'Laundry')
+{
+    $nama   = trim((string) ($order['customer_name'] ?? ''));
+    $kode   = trim((string) ($order['order_code'] ?? ''));
+    $toko   = trim((string) $namaToko);
+    $status = (int) ($order['laundry_status'] ?? 0);
+
+    if ($toko === '') {
+        $toko = 'Laundry';
+    }
+
+    $pesan = ($nama !== '' ? 'Halo ' . $nama : 'Halo') . ', cucian';
+    if ($kode !== '') {
+        $pesan .= ' dengan kode ' . $kode;
+    }
+    $pesan .= ' di ' . $toko;
+
+    if ($status >= 3) {
+        $pesan .= ' sudah diambil.';
+    } else {
+        $pesan .= ' berstatus ' . labelStatusCucian($status) . '.';
+        $pesan .= ' Estimasi selesai ' . formatTanggalSingkat($order['order_end_date'] ?? '') . '.';
+    }
+
+    $pesan .= ' Total ' . rupiah($order['total'] ?? 0);
+    $pesan .= (int) ($order['order_status'] ?? 0) === 1 ? ' (lunas).' : ' (belum dibayar).';
+
+    return $pesan . ' Terima kasih.';
+}
+
+// Tautan wa.me dengan pesan terisi; kosong kalau nomor tidak valid
+function linkWa($phone, $pesan)
+{
+    $nomor = nomorWa($phone);
+
+    if ($nomor === '') {
+        return '';
+    }
+
+    return 'https://wa.me/' . $nomor . '?text=' . rawurlencode((string) $pesan);
+}
