@@ -166,6 +166,210 @@ function formatTanggalSingkat($date)
     return $waktu ? date('d/m/Y', $waktu) : '-';
 }
 
+// Validasi tanggal Y-m-d yang benar-benar ada di kalender (menolak 2026-02-30)
+function tanggalValid($value)
+{
+    if (!is_string($value) || $value === '') {
+        return false;
+    }
+
+    $d = DateTime::createFromFormat('Y-m-d', $value);
+
+    return $d && $d->format('Y-m-d') === $value;
+}
+
+// Format rupiah untuk ringkasan dan tabel laporan
+function rupiah($angka)
+{
+    return 'Rp ' . number_format((float) $angka, 0, ',', '.');
+}
+
+// Qty tersimpan dalam gram; tampilkan sebagai kg tanpa nol berekor
+function formatKg($gram)
+{
+    $teks = number_format(((float) $gram) / 1000, 2, ',', '.');
+    $teks = rtrim(rtrim($teks, '0'), ',');
+
+    return $teks === '' ? '0' : $teks;
+}
+
+// Membaca filter laporan dari query string.
+// Default: awal bulan berjalan sampai hari ini.
+function filterLaporan(?array $sumber = null)
+{
+    $sumber = $sumber ?? $_GET;
+
+    $date    = is_string($sumber['date'] ?? null) ? trim($sumber['date']) : '';
+    $endDate = is_string($sumber['end_date'] ?? null) ? trim($sumber['end_date']) : '';
+
+    if (!tanggalValid($date)) {
+        $date = date('Y-m-01');
+    }
+
+    if (!tanggalValid($endDate)) {
+        $endDate = date('Y-m-d');
+    }
+
+    // Rentang terbalik ditukar supaya hasilnya tetap masuk akal
+    if ($date > $endDate) {
+        [$date, $endDate] = [$endDate, $date];
+    }
+
+    $status = is_string($sumber['status'] ?? null) ? $sumber['status'] : '';
+    if (!in_array($status, ['0', '1'], true)) {
+        $status = '';
+    }
+
+    $cucian = is_string($sumber['cucian'] ?? null) ? $sumber['cucian'] : '';
+    if (!in_array($cucian, ['0', '1', '2', '3'], true)) {
+        $cucian = '';
+    }
+
+    return [
+        'date'     => $date,
+        'end_date' => $endDate,
+        'status'   => $status,
+        'cucian'   => $cucian,
+    ];
+}
+
+// WHERE laporan yang sudah dibersihkan; dipakai halaman, CSV, dan cetak
+function laporanWhere($config, array $filter)
+{
+    $dateSafe = mysqli_real_escape_string($config, $filter['date']);
+    $endSafe  = mysqli_real_escape_string($config, $filter['end_date']);
+
+    $where = "trans_order.deleted_at IS NULL AND trans_order.order_date BETWEEN '$dateSafe' AND '$endSafe'";
+
+    if ($filter['status'] !== '') {
+        $where .= ' AND trans_order.order_status = ' . (int) $filter['status'];
+    }
+
+    if ($filter['cucian'] !== '') {
+        $where .= ' AND trans_order.laundry_status = ' . (int) $filter['cucian'];
+    }
+
+    return $where;
+}
+
+// Query string filter untuk tautan ekspor dan cetak
+function queryLaporan(array $filter)
+{
+    $data = [
+        'date'     => $filter['date'],
+        'end_date' => $filter['end_date'],
+    ];
+
+    if ($filter['status'] !== '') {
+        $data['status'] = $filter['status'];
+    }
+
+    if ($filter['cucian'] !== '') {
+        $data['cucian'] = $filter['cucian'];
+    }
+
+    return http_build_query($data);
+}
+
+// Ringkasan filter dalam bahasa manusia
+function keteranganLaporan(array $filter)
+{
+    $teks = formatTanggalIndo($filter['date']) . ' sampai ' . formatTanggalIndo($filter['end_date']);
+
+    if ($filter['status'] !== '') {
+        $teks .= ' | ' . labelStatusBayar($filter['status']);
+    }
+
+    if ($filter['cucian'] !== '') {
+        $teks .= ' | ' . labelStatusCucian($filter['cucian']);
+    }
+
+    return $teks;
+}
+
+// Ringkasan angka laporan: jumlah order, pendapatan lunas, piutang, total kg
+function laporanRingkasan($config, $where)
+{
+    $query = mysqli_query($config, "
+        SELECT
+            COUNT(*) AS total_order,
+            COALESCE(SUM(CASE WHEN trans_order.order_status = 1 THEN trans_order.total ELSE 0 END), 0) AS pendapatan,
+            COALESCE(SUM(CASE WHEN trans_order.order_status = 0 THEN trans_order.total ELSE 0 END), 0) AS piutang
+        FROM trans_order
+        WHERE $where
+    ");
+    $row = $query ? mysqli_fetch_assoc($query) : null;
+
+    $queryGram = mysqli_query($config, "
+        SELECT COALESCE(SUM(trans_order_detail.qty), 0) AS gram
+        FROM trans_order_detail
+        INNER JOIN trans_order ON trans_order.id = trans_order_detail.id_order
+        WHERE $where
+    ");
+    $gram = $queryGram ? mysqli_fetch_assoc($queryGram) : null;
+
+    return [
+        'total_order' => (int) ($row['total_order'] ?? 0),
+        'pendapatan'  => (float) ($row['pendapatan'] ?? 0),
+        'piutang'     => (float) ($row['piutang'] ?? 0),
+        'gram'        => (int) round((float) ($gram['gram'] ?? 0)),
+    ];
+}
+
+// Daftar order pada rentang laporan, urut dari yang paling lama
+function laporanOrder($config, $where)
+{
+    $query = mysqli_query($config, "
+        SELECT
+            trans_order.id,
+            trans_order.order_code,
+            trans_order.order_date,
+            trans_order.order_end_date,
+            trans_order.total,
+            trans_order.order_status,
+            trans_order.laundry_status,
+            customer.customer_name,
+            COALESCE((SELECT SUM(qty) FROM trans_order_detail WHERE id_order = trans_order.id), 0) AS gram
+        FROM trans_order
+        LEFT JOIN customer ON customer.id = trans_order.id_customer
+        WHERE $where
+        ORDER BY trans_order.order_date ASC, trans_order.id ASC
+    ");
+
+    return $query ? mysqli_fetch_all($query, MYSQLI_ASSOC) : [];
+}
+
+// Rekap qty dan subtotal per jenis layanan
+function laporanLayanan($config, $where)
+{
+    $query = mysqli_query($config, "
+        SELECT
+            COALESCE(type_of_service.service_name, '-') AS service_name,
+            SUM(trans_order_detail.qty) AS gram,
+            SUM(trans_order_detail.subtotal) AS subtotal
+        FROM trans_order_detail
+        INNER JOIN trans_order ON trans_order.id = trans_order_detail.id_order
+        LEFT JOIN type_of_service ON type_of_service.id = trans_order_detail.id_service
+        WHERE $where
+        GROUP BY trans_order_detail.id_service, type_of_service.service_name
+        ORDER BY subtotal DESC, service_name ASC
+    ");
+
+    return $query ? mysqli_fetch_all($query, MYSQLI_ASSOC) : [];
+}
+
+// Cegah CSV injection: sel teks yang diawali = + - @ diberi apostrof
+function csvAman($nilai)
+{
+    $nilai = (string) $nilai;
+
+    if ($nilai !== '' && in_array($nilai[0], ['=', '+', '-', '@'], true)) {
+        return "'" . $nilai;
+    }
+
+    return $nilai;
+}
+
 // Cucian lewat tenggat bila estimasi sudah lewat dan belum diambil
 function cucianLewatTenggat($endDate, $laundryStatus)
 {

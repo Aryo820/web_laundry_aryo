@@ -10,7 +10,7 @@ Aplikasi kasir dan administrasi laundry berbasis PHP dan MySQL. Dibuat tanpa fra
 - Pembayaran tunai beserta kembalian.
 - Cetak struk.
 - Pengaturan toko (nama, alamat, telepon, email) yang dipakai pada struk.
-- Laporan transaksi per rentang tanggal.
+- Laporan transaksi per rentang tanggal: ringkasan order, pendapatan, piutang, total cucian, filter status, rekap per layanan, ekspor CSV, dan halaman cetak.
 - Pencarian order berdasarkan kode order, nama customer, atau nomor telepon dari kolom pencarian di header.
 - Dashboard ringkasan: order bulan ini, pendapatan, customer aktif, service aktif, order belum dibayar, dan lima order terbaru.
 
@@ -34,6 +34,8 @@ index.php                 Halaman login
 home.php                  Layout utama + router halaman
 logout.php                Keluar dan hapus session
 print.php                 Cetak struk
+report-export.php         Ekspor laporan ke CSV
+report-print.php          Halaman cetak laporan
 content/                  Isi halaman (dashboard, order, report, master data, pengaturan)
 inc/                      Header, sidebar, dan header keamanan
 database/migrations/      Migrasi SQL manual
@@ -141,6 +143,7 @@ Lalu simpan hasilnya ke kolom `password` milik user terkait.
 | Pengaturan toko | ✔ | – | – |
 | Order dan tambah order | ✔ | ✔ | – |
 | Report | ✔ | – | ✔ |
+| Ekspor CSV dan cetak laporan | ✔ | – | ✔ |
 
 Level lain atau halaman di luar hak akses akan dialihkan ke halaman awal sesuai level. Level yang tidak dikenal akan diakhiri session-nya.
 
@@ -156,7 +159,7 @@ Kolom pencarian order di header hanya tampil untuk Administrator dan Operator, k
 6. Buka detail order, isi jumlah bayar, lalu simpan. Status pembayaran berubah menjadi **Lunas**; status cucian berjalan terpisah.
 7. Majukan status cucian dari halaman detail: **Dicuci** → **Siap Diambil** → **Sudah Diambil**. Tahap terakhir mencatat serah terima di `trans_laundry_pickup`.
 8. Cari order lewat kolom pencarian di header memakai kode order, nama customer, atau nomor telepon. Tekan **Tampilkan semua** untuk menghapus filter.
-9. Pantau transaksi lewat menu Report atau Dashboard.
+9. Pantau transaksi lewat menu Report: pilih rentang tanggal dan status, lihat ringkasan, lalu **Export CSV** atau **Cetak**.
 
 Catatan perhitungan:
 
@@ -229,9 +232,17 @@ Aplikasi juga menjalankan pembersihan ini otomatis setiap ada percobaan login.
 - Pengaturan toko hanya menyimpan satu baris identitas; belum ada unggah logo.
 - Pencarian hanya mencakup daftar order, belum customer atau service.
 - Belum ada pagination pada daftar order dan customer.
+- Laporan menampilkan seluruh baris pada periode terpilih tanpa pagination.
 - Migrasi dijalankan manual, belum ada runner otomatis.
 
 ## Riwayat Versi
+
+### v1.2.0 (dalam pengerjaan)
+- Laporan memakai filter `GET`: rentang tanggal, status bayar, dan status cucian, sehingga tautan laporan bisa dibagikan.
+- Ringkasan laporan: jumlah order, pendapatan lunas, piutang, dan total cucian.
+- Rekap qty dan subtotal per jenis layanan.
+- Ekspor CSV dengan BOM UTF-8, total, dan proteksi formula injection.
+- Halaman cetak laporan A4 berisi identitas toko dan rekap layanan.
 
 ### v1.1.0
 - Status pembayaran dipisah dari tahap cucian: Antrian, Dicuci, Siap Diambil, Sudah Diambil.

@@ -1,126 +1,253 @@
 <?php
-$query = mysqli_query($config, "SELECT * FROM trans_order WHERE deleted_at IS NULL ORDER BY order_date ASC");
-$row = $query ? mysqli_fetch_all($query, MYSQLI_ASSOC) : [];
-$max = count($row);
+$filter     = filterLaporan();
+$where      = laporanWhere($config, $filter);
+$ringkasan  = laporanRingkasan($config, $where);
+$rowOrder   = laporanOrder($config, $where);
+$rowLayanan = laporanLayanan($config, $where);
 
-if ($max > 0) {
-    $minDate = $row[0]['order_date'];
-    $maxDate = $row[$max - 1]['order_date'];
-} else {
-    $minDate = date('Y-m-d');
-    $maxDate = date('Y-m-d');
-}
-
-$tanggalValid = function ($value) {
-    $d = DateTime::createFromFormat('Y-m-d', $value);
-    return $d && $d->format('Y-m-d') === $value;
-};
-
-$date = $minDate;
-$end_date = $maxDate;
-
-if (isset($_POST['filter'])) {
-    if (!csrfValid()) {
-        header('location:?page=report&gagal=csrf');
-        exit;
-    }
-
-    $inputDate = is_string($_POST['date'] ?? null) ? $_POST['date'] : '';
-    $inputEnd  = is_string($_POST['end_date'] ?? null) ? $_POST['end_date'] : '';
-
-    if ($tanggalValid($inputDate)) {
-        $date = $inputDate;
-    }
-    if ($tanggalValid($inputEnd)) {
-        $end_date = $inputEnd;
-    }
-
-    // Tukar jika urutan tanggal terbalik
-    if ($date > $end_date) {
-        [$date, $end_date] = [$end_date, $date];
-    }
-}
-
-$dateSafe = mysqli_real_escape_string($config, $date);
-$endDateSafe = mysqli_real_escape_string($config, $end_date);
-
-// Ambil kolom secara eksplisit supaya price/subtotal berasal dari snapshot detail,
-// bukan tertimpa type_of_service.price
-$queryTransOrderDetail = mysqli_query($config, "
-    SELECT
-        trans_order_detail.id_service,
-        trans_order_detail.qty,
-        trans_order_detail.price,
-        trans_order_detail.subtotal,
-        type_of_service.service_name,
-        trans_order.order_date
-    FROM trans_order_detail
-    INNER JOIN trans_order ON trans_order.id = trans_order_detail.id_order
-    LEFT JOIN type_of_service ON type_of_service.id = trans_order_detail.id_service
-    WHERE trans_order.deleted_at IS NULL
-      AND trans_order.order_date BETWEEN '$dateSafe' AND '$endDateSafe'
-    ORDER BY trans_order.order_date ASC, trans_order.id ASC, trans_order_detail.id ASC
-");
-$rowTransOrderDetail = $queryTransOrderDetail ? mysqli_fetch_all($queryTransOrderDetail, MYSQLI_ASSOC) : [];
-
-$gagal = is_string($_GET['gagal'] ?? null) ? $_GET['gagal'] : '';
-$notifGagal = $gagal === 'csrf' ? 'Sesi formulir tidak valid. Muat ulang halaman lalu coba lagi.' : '';
+$tautanFilter = queryLaporan($filter);
+$keterangan   = keteranganLaporan($filter);
+$daftarCucian = [0 => 'Antrian', 1 => 'Dicuci', 2 => 'Siap Diambil', 3 => 'Sudah Diambil'];
 ?>
+<div class="pagetitle">
+    <h1>Laporan</h1>
+    <nav>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="home.php">Home</a></li>
+            <li class="breadcrumb-item active">Laporan</li>
+        </ol>
+    </nav>
+</div>
+
 <section class="section">
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Data Report</h5>
-                    <?php if ($notifGagal !== ''): ?>
-                        <div class="alert alert-danger"><?php echo htmlspecialchars($notifGagal); ?></div>
-                    <?php endif ?>
-                    <form action="" method="post">
-                        <?php echo csrfField(); ?>
-                        <label for="">Start Date</label>
-                        <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>">
-                        <label for="">End Date</label>
-                        <input type="date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
-                        <button type="submit" name="filter" class="btn btn-secondary">Filter</button>
+                    <h5 class="card-title">Filter Laporan</h5>
+                    <form method="get" action="home.php" class="row g-2 align-items-end">
+                        <input type="hidden" name="page" value="report">
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label">Dari Tanggal</label>
+                            <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($filter['date'], ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label">Sampai Tanggal</label>
+                            <input type="date" name="end_date" class="form-control" value="<?php echo htmlspecialchars($filter['end_date'], ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label">Status Bayar</label>
+                            <select name="status" class="form-select">
+                                <option value="">Semua</option>
+                                <option value="0" <?php echo $filter['status'] === '0' ? 'selected' : ''; ?>>Belum Bayar</option>
+                                <option value="1" <?php echo $filter['status'] === '1' ? 'selected' : ''; ?>>Lunas</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label">Status Cucian</label>
+                            <select name="cucian" class="form-select">
+                                <option value="">Semua</option>
+                                <?php foreach ($daftarCucian as $nilai => $label): ?>
+                                    <option value="<?php echo $nilai; ?>" <?php echo $filter['cucian'] === (string) $nilai ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                <?php endforeach ?>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-12">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                            <a href="?page=report" class="btn btn-outline-secondary">Reset</a>
+                        </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xxl-3 col-md-6">
+            <div class="card info-card sales-card">
+                <div class="card-body">
+                    <h5 class="card-title">Order <span>| Periode</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo number_format($ringkasan['total_order'], 0, ',', '.'); ?></h6>
+                            <span class="text-muted small pt-2">order tercatat</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3 col-md-6">
+            <div class="card info-card revenue-card">
+                <div class="card-body">
+                    <h5 class="card-title">Pendapatan <span>| Lunas</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6 style="font-size: 22px;"><?php echo rupiah($ringkasan['pendapatan']); ?></h6>
+                            <span class="text-muted small pt-2">dari order lunas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3 col-md-6">
+            <div class="card info-card">
+                <div class="card-body">
+                    <h5 class="card-title">Belum Dibayar <span>| Piutang</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center" style="color: #dc3545; background: #fdecee;">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6 style="font-size: 22px;"><?php echo rupiah($ringkasan['piutang']); ?></h6>
+                            <span class="text-muted small pt-2">belum masuk kas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3 col-md-6">
+            <div class="card info-card customers-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Cucian <span>| Kg</span></h5>
+                    <div class="d-flex align-items-center">
+                        <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="bi bi-basket"></i>
+                        </div>
+                        <div class="ps-3">
+                            <h6><?php echo formatKg($ringkasan['gram']); ?> kg</h6>
+                            <span class="text-muted small pt-2">qty layanan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <div>
+                            <h5 class="card-title mb-1">Daftar Order</h5>
+                            <p class="text-muted small mb-0"><?php echo htmlspecialchars($keterangan, ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
+                        <div>
+                            <a href="report-export.php?<?php echo htmlspecialchars($tautanFilter, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-success">Export CSV</a>
+                            <a href="report-print.php?<?php echo htmlspecialchars($tautanFilter, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">Cetak</a>
+                        </div>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-bordered">
+                        <table class="table table-bordered align-middle">
                             <thead>
                                 <tr>
                                     <th>No</th>
-                                    <th>Service Name</th>
-                                    <th>Date</th>
-                                    <th>Qty (kg)</th>
-                                    <th>Price</th>
-                                    <th>Subtotal</th>
+                                    <th>Kode</th>
+                                    <th>Tanggal</th>
+                                    <th>Customer</th>
+                                    <th>Estimasi</th>
+                                    <th class="text-end">Qty (kg)</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (!empty($rowTransOrderDetail)): ?>
-                                    <?php $grandTotal = 0; ?>
-                                    <?php foreach ($rowTransOrderDetail as $index => $data): ?>
+                                <?php if (empty($rowOrder)): ?>
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">Tidak ada order pada periode ini.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php $totalGram = 0; $totalRupiah = 0; ?>
+                                    <?php foreach ($rowOrder as $index => $order): ?>
+                                        <?php
+                                        $totalGram   += (int) $order['gram'];
+                                        $totalRupiah += (float) $order['total'];
+                                        ?>
                                         <tr>
-                                            <td><?php echo $index + 1 ?></td>
-                                            <td><?php echo htmlspecialchars($data['service_name'] ?? '-') ?></td>
-                                            <td><?php echo htmlspecialchars($data['order_date']) ?></td>
-                                            <td><?php echo $data['qty'] / 1000 ?></td>
-                                            <td><?php echo $data['price'] ?></td>
-                                            <td><?php echo (float) $data['subtotal'];
-                                                $grandTotal += (float) $data['subtotal']; ?></td>
+                                            <td><?php echo $index + 1; ?></td>
+                                            <td><?php echo htmlspecialchars($order['order_code'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo formatTanggalSingkat($order['order_date']); ?></td>
+                                            <td><?php echo htmlspecialchars($order['customer_name'] ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td>
+                                                <?php echo formatTanggalSingkat($order['order_end_date']); ?>
+                                                <?php if (cucianLewatTenggat($order['order_end_date'], $order['laundry_status'])): ?>
+                                                    <span class="badge bg-danger">Lewat</span>
+                                                <?php endif ?>
+                                            </td>
+                                            <td class="text-end"><?php echo formatKg($order['gram']); ?></td>
+                                            <td class="text-end"><?php echo rupiah($order['total']); ?></td>
+                                            <td>
+                                                <?php echo badgeStatusBayar($order['order_status']); ?>
+                                                <?php echo badgeStatusCucian($order['laundry_status']); ?>
+                                            </td>
                                         </tr>
                                     <?php endforeach ?>
                                     <tr>
                                         <td colspan="5" class="text-end"><strong>Total</strong></td>
-                                        <td><strong><?php echo (float) $grandTotal; ?></strong></td>
+                                        <td class="text-end"><strong><?php echo formatKg($totalGram); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo rupiah($totalRupiah); ?></strong></td>
+                                        <td></td>
                                     </tr>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="6" class="text-center">Tidak ada data transaksi untuk rentang tanggal ini.</td>
-                                    </tr>
-                                <?php endif; ?>
+                                <?php endif ?>
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Rekap per Layanan</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Layanan</th>
+                                    <th class="text-end">Qty (kg)</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($rowLayanan)): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Belum ada layanan pada periode ini.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php $totalLayananGram = 0; $totalLayananSubtotal = 0; ?>
+                                    <?php foreach ($rowLayanan as $layanan): ?>
+                                        <?php
+                                        $totalLayananGram     += (int) $layanan['gram'];
+                                        $totalLayananSubtotal += (float) $layanan['subtotal'];
+                                        ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($layanan['service_name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="text-end"><?php echo formatKg($layanan['gram']); ?></td>
+                                            <td class="text-end"><?php echo rupiah($layanan['subtotal']); ?></td>
+                                        </tr>
+                                    <?php endforeach ?>
+                                    <tr>
+                                        <td class="text-end"><strong>Total</strong></td>
+                                        <td class="text-end"><strong><?php echo formatKg($totalLayananGram); ?></strong></td>
+                                        <td class="text-end"><strong><?php echo rupiah($totalLayananSubtotal); ?></strong></td>
+                                    </tr>
+                                <?php endif ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted small mb-0">Subtotal memakai harga snapshot saat order dibuat, bukan harga layanan saat ini.</p>
                 </div>
             </div>
         </div>
