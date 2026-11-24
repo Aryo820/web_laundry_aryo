@@ -347,7 +347,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                 <tr>
                                     <th>Code</th>
                                     <td>:</td>
-                                    <td><?php echo $rowOrder['order_code']; ?></td>
+                                    <td><?php echo htmlspecialchars($rowOrder['order_code'] ?? ''); ?></td>
                                     <th>Date</th>
                                     <td>:</td>
                                     <td><?php echo tanggal($rowOrder['order_date']); ?></td>
@@ -355,7 +355,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                 <tr>
                                     <th>Name</th>
                                     <td>:</td>
-                                    <td><?php echo $rowOrder['customer_name']; ?></td>
+                                    <td><?php echo htmlspecialchars($rowOrder['customer_name'] ?? '-'); ?></td>
                                     <th>End Date</th>
                                     <td>:</td>
                                     <td><?php echo tanggal($rowOrder['order_end_date']); ?></td>
@@ -468,7 +468,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                             <select name="id_customer" id="" class="form-control">
                                                 <option value="">Select Customer</option>
                                                 <?php foreach ($rowCustomer as $customer): ?>
-                                                    <option <?php echo isset($_GET['edit']) ? ($customer['id'] == $row['id_customer'] ? 'selected' : '') : '' ?> value="<?php echo $customer['id'] ?>"><?php echo $customer['customer_name'] ?></option>
+                                                    <option <?php echo isset($_GET['edit']) ? ($customer['id'] == $row['id_customer'] ? 'selected' : '') : '' ?> value="<?php echo (int) $customer['id'] ?>"><?php echo htmlspecialchars($customer['customer_name']) ?></option>
                                                 <?php endforeach ?>
                                             </select>
                                         <?php } ?>
@@ -478,7 +478,7 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
                                         <select name="id_service" id="id_service" class="form-control">
                                             <option value="">Select Service</option>
                                             <?php foreach ($rowServices as $service): ?>
-                                                <option data-price="<?php echo $service['price'] ?>" value="<?php echo $service['id'] ?>"><?php echo $service['service_name'] ?></option>
+                                                <option data-price="<?php echo (int) $service['price'] ?>" value="<?php echo (int) $service['id'] ?>"><?php echo htmlspecialchars($service['service_name']) ?></option>
                                             <?php endforeach ?>
                                         </select>
                                     </div>
@@ -592,16 +592,41 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
         const serviceName = selectedService.textContent;
         const servicePrice = selectedService.dataset.price;
 
-        const tr = document.createElement('tr'); //<tr></tr>
-        tr.innerHTML = `
-        <td>${no}</td>
-        <td><input type='hidden' name='id_service[]' class='id_services' value='${select.value}'>${serviceName}</td>
-        <td>
-            <input type='number' name='qty[]' value='1' class='qtys'>
-            <input type='hidden' class='priceInput' name='price[]' value='${servicePrice}'>
-        </td>
-        <td><input type='hidden' name='total[]' class='totals' value='${servicePrice}'><span class='totalText'>${servicePrice}</span></td>
-        <td><button class='btn btn-danger btn-sm removeRow' type='button'>Delete</button></td>`;
+        // Baris dibangun lewat DOM, bukan innerHTML, supaya nama layanan
+        // yang berisi tag HTML tetap tampil sebagai teks biasa
+        const tr = document.createElement('tr');
+
+        const tdNo = document.createElement('td');
+        tdNo.textContent = no;
+
+        const tdService = document.createElement('td');
+        tdService.appendChild(hiddenInput('id_service[]', 'id_services', serviceValue));
+        tdService.appendChild(document.createTextNode(serviceName));
+
+        const tdQty = document.createElement('td');
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.name = 'qty[]';
+        qtyInput.value = '1';
+        qtyInput.className = 'qtys';
+        tdQty.appendChild(qtyInput);
+        tdQty.appendChild(hiddenInput('price[]', 'priceInput', servicePrice));
+
+        const tdTotal = document.createElement('td');
+        tdTotal.appendChild(hiddenInput('total[]', 'totals', servicePrice));
+        const totalText = document.createElement('span');
+        totalText.className = 'totalText';
+        totalText.textContent = servicePrice;
+        tdTotal.appendChild(totalText);
+
+        const tdAksi = document.createElement('td');
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'btn btn-danger btn-sm removeRow';
+        removeButton.textContent = 'Delete';
+        tdAksi.appendChild(removeButton);
+
+        tr.append(tdNo, tdService, tdQty, tdTotal, tdAksi);
 
         tbody.appendChild(tr);
         updateGrandTotal();
@@ -634,6 +659,15 @@ $rowServices = mysqli_fetch_all($queryServices, MYSQLI_ASSOC);
 
         }
     });
+
+    function hiddenInput(name, className, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.className = className;
+        input.value = value;
+        return input;
+    }
 
     function updateNumber() {
         const rows = tbody.querySelectorAll('tr');
